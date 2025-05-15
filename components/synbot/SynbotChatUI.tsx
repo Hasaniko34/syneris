@@ -13,6 +13,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "@/components/CodeBlock";
 import { useSession } from "next-auth/react";
+import { v4 as uuidv4 } from "uuid";
 
 type Message = {
   id: string;
@@ -169,81 +170,89 @@ export function SynbotChatUI() {
   
   // Kullanıcı mesajı gönderme
   const sendMessage = async (userMessage: string) => {
-    if (!userMessage.trim() || isLoading) return;
-    
-    const newUserMessage: Message = {
-      id: Date.now().toString(),
-      content: userMessage,
-      role: "user",
-      timestamp: new Date()
-    };
-    
-    // Kullanıcı mesajını ekle
-    setMessages(prev => [...prev, newUserMessage]);
-    
-    setIsLoading(true);
-    
     try {
-      // Yükleniyor mesajını ekle
-      const loadingMessage: Message = {
-        id: `loading-${Date.now()}`,
-        content: "Yanıt hazırlanıyor...",
-        role: "assistant",
-        timestamp: new Date()
+      console.log("Sending message to force-api:", userMessage.substring(0, 50) + "...");
+      
+      // Store message optimistically
+      const userMsg: Message = {
+        id: uuidv4(),
+        role: "user",
+        content: userMessage,
+        timestamp: new Date(),
       };
       
-      setMessages(prev => [...prev, loadingMessage]);
+      setMessages((prev) => [...prev, userMsg]);
+      
+      // Attempt to send to API
+      const response = await fetch("/api/synbot/force-api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userMessage,
+          sessionId: activeSession || "direct-api"
+        }),
+      });
       
       let botResponse = "";
       
-      try {
-        // API'ye istek gönder
-        const response = await fetch('/api/synbot/force-api', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: userMessage }),
-          signal: AbortSignal.timeout(10000) // 10 saniye timeout
-        });
-        
-        if (!response.ok) {
-          throw new Error(`API Hatası: ${response.status}`);
+      if (!response.ok) {
+        console.error("API error:", response.status, response.statusText);
+        botResponse = "Sunucu yanıt vermedi. Lütfen daha sonra tekrar deneyin.";
+      } else {
+        try {
+          const data = await response.json();
+          console.log("API response received:", data);
+          
+          if (data && data.response) {
+            botResponse = data.response;
+          } else {
+            console.error("Invalid API response format:", data);
+            botResponse = "API yanıtı beklenmeyen bir formatta. Teknik ekibe bildirin.";
+          }
+        } catch (parseError) {
+          console.error("Error parsing API response:", parseError);
+          botResponse = "API yanıtı işlenemedi. Teknik ekibe bildirin.";
         }
-        
-        const data = await response.json();
-        botResponse = data.response || "API yanıtı alınamadı";
-      } catch (error) {
-        console.error("API hatası:", error);
-        
-        // Offline yanıt üret
-        botResponse = "Şu anda sunucuya bağlanılamıyor. Mesajınız kaydedildi, internet bağlantısı sağlandığında yanıt alabileceksiniz. Yardımcı olabilecek başka bir konuda bilgi almak ister misiniz?";
       }
-      
-      // Bot yanıtını ekle
-      const botMessage: Message = {
-        id: `bot-${Date.now()}`,
+
+      // Add bot message
+      const botMsg: Message = {
+        id: uuidv4(),
+        role: "assistant",
         content: botResponse,
-        role: "assistant",
-        timestamp: new Date()
+        timestamp: new Date(),
       };
       
-      // Yükleniyor mesajını kaldır ve bot yanıtını ekle
-      setMessages(prev => 
-        [...prev.filter(m => m.id !== loadingMessage.id), botMessage]
-      );
+      setMessages((prev) => [...prev, botMsg]);
+      
+      // Save messages to session if we have an active session
+      if (activeSession) {
+        try {
+          await fetch("/api/synbot/sessions/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId: activeSession,
+              userMessage: userMsg,
+              botMessage: botMsg
+            }),
+          });
+        } catch (error) {
+          console.error("Failed to save messages to session:", error);
+        }
+      }
     } catch (error) {
-      console.error("Mesaj gönderme hatası:", error);
+      console.error("Error in sendMessage:", error);
       
-      // Hata mesajını ekle
-      const errorMessage: Message = {
-        id: `error-${Date.now()}`,
-        content: `Üzgünüm, bir hata oluştu: ${error instanceof Error ? error.message : "Bilinmeyen hata"}`,
+      // Add error message for user
+      const errorMsg: Message = {
+        id: uuidv4(),
         role: "assistant",
-        timestamp: new Date()
+        content: "Maalesef bir bağlantı hatası oluştu. İnternet bağlantınızı kontrol edin ve tekrar deneyin.",
+        timestamp: new Date(),
       };
       
-      setMessages(prev => 
-        [...prev.filter(m => m.id.startsWith("loading-")), errorMessage]
-      );
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -440,8 +449,8 @@ export function SynbotChatUI() {
             {isLoading && (
               <div className="flex items-start gap-3">
                 <Avatar className="mt-0.5 border flex-shrink-0">
-                  <AvatarImage src="/images/synbot-avatar.png" alt="SynBot" />
                   <AvatarFallback>SB</AvatarFallback>
+                  <AvatarImage src="/icons/synbot-icon.png" alt="SynBot" />
                 </Avatar>
                 <div className="bg-muted rounded-lg px-4 py-2 max-w-[80%] flex items-center gap-2">
                   <RefreshCcw className="h-4 w-4 animate-spin text-muted-foreground/80" />
@@ -471,4 +480,4 @@ export function SynbotChatUI() {
       </CardFooter>
     </Card>
   );
-} 
+}
