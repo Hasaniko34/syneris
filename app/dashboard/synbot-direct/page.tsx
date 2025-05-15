@@ -1,236 +1,248 @@
 'use client';
 
-import { useState, useEffect, FormEvent, Suspense } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useRef, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Bot, Send, RefreshCcw, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { Maximize2, Minimize2, Send } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { CodeBlock } from '@/components/CodeBlock';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
-// SearchParams için wrapper component
-function SearchParamsWrapper({ children }) {
-  const searchParams = useSearchParams();
-  const fullscreen = searchParams.get('fullscreen') === 'true';
-  
-  return children({ fullscreen });
-}
-
-export default function SynbotDirectPage() {
-  const [query, setQuery] = useState('');
-  const [response, setResponse] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // searchParams değerini state'e taşı
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  
-  const [messages, setMessages] = useState<{role: 'user' | 'bot', content: string}[]>([
-    {role: 'bot', content: 'Yükleniyor...'}
+export default function DirectSynbotPage() {
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<any[]>([
+    { 
+      role: 'assistant', 
+      content: 'Merhaba! Ben SynBot - Turkcell\'in Eğitim Asistanı. Size nasıl yardımcı olabilirim?',
+      timestamp: new Date()
+    }
   ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
 
-  // fullscreen parametresi değiştiğinde mesajları güncelle
   useEffect(() => {
-    setMessages([{
-      role: 'bot', 
-      content: isFullscreen 
-        ? 'Merhaba! Ben SynBot, Turkcell\'in yapay zeka asistanıyım. Turkcell sistemleri, süreçleri ve hata kodları hakkında sorularınızı yanıtlayabilirim. Size nasıl yardımcı olabilirim?' 
-        : 'Merhaba! Ben SynBot Direct. Bana bir soru sorun.'
-    }]);
-  }, [isFullscreen]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  async function handleSubmit(e: FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim() || loading) return;
+    if (!input.trim() || isLoading) return;
 
-    const userQuery = query;
-    setQuery('');
-    setMessages(prev => [...prev, {role: 'user', content: userQuery}]);
-    setLoading(true);
-    setError(null);
+    const userMessage = {
+      role: 'user',
+      content: input,
+      timestamp: new Date()
+    };
 
-    // Loading mesajı göster
-    setMessages(prev => [...prev, {role: 'bot', content: isFullscreen ? '...' : 'Yanıt hazırlanıyor...'}]);
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
 
     try {
-      // Doğrudan Gemini API'ye istek
-      const API_KEY = 'AIzaSyDfJ4ZDvYDsC4Cq8lksklgFJDIzpwKgyxk';
-      const response = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': API_KEY
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: 'model',
-                parts: [{ text: 'Sen Turkcell\'in yapay zeka asistanısın. Adın SynBot. Turkcell sistemleri, süreçleri ve hata kodları hakkında sorulara detaylı ve gerçek yanıtlar ver. Asla statik yanıt verme ve bilmediğin konularda dürüst ol. Yanıtları Markdown formatında ver, kodları ve teknik içeriği uygun şekilde formatla.' }]
-              },
-              {
-                role: 'user',
-                parts: [{ text: userQuery }]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 1024
-            }
-          })
-        }
-      );
+      // SynBot API isteği
+      const response = await fetch('/api/synbot/force-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: input,
+        }),
+      });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API hatası: ${response.status} - ${errorText}`);
+        throw new Error(`Hata: ${response.status}`);
       }
 
       const data = await response.json();
-      const geminiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Yanıt alınamadı';
       
-      // Son yükleniyor mesajını kaldır
-      setMessages(prev => prev.slice(0, -1));
-      // Gerçek yanıtı ekle
-      setMessages(prev => [...prev, {role: 'bot', content: geminiResponse}]);
+      const assistantMessage = {
+        role: 'assistant',
+        content: data.response || 'Üzgünüm, yanıt alınamadı.',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Hata:', error);
       
-    } catch (err: any) {
-      setError(err.message || 'Bir hata oluştu');
-      // Son yükleniyor mesajını kaldır
-      setMessages(prev => prev.slice(0, -1));
-      // Hata mesajını ekle
-      setMessages(prev => [...prev, {role: 'bot', content: `⚠️ Hata: ${err.message}`}]);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Üzgünüm, bir hata oluştu. Lütfen daha sonra tekrar deneyin.',
+        timestamp: new Date()
+      }]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(prev => !prev);
+  };
 
   return (
-    <div className={`container mx-auto py-6 ${isFullscreen ? 'h-screen flex flex-col' : ''}`}>
-      {/* SearchParams için Suspense boundary */}
-      <Suspense fallback={<div className="w-10 h-10 border-t-2 border-primary rounded-full animate-spin"></div>}>
-        <SearchParamsWrapper>
-          {({ fullscreen }) => {
-            // fullscreen değerini state'e ayarla
-            if (fullscreen !== isFullscreen) {
-              setIsFullscreen(fullscreen);
-            }
-            
-            return null;
-          }}
-        </SearchParamsWrapper>
-      </Suspense>
-      
-      {isFullscreen && (
-        <div className="flex items-center gap-4 mb-4">
-          <Link href="/dashboard/synbot">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
+    <div className={`flex justify-center items-center p-4 ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''}`}>
+      <Card className={`w-full ${isFullscreen ? 'h-full' : 'max-w-3xl'} flex flex-col overflow-hidden`}>
+        <CardHeader className="p-4 border-b">
+          <div className="flex justify-between items-center">
+            <CardTitle>{isFullscreen ? 'SynBot' : 'SynBot Turkcell Eğitim Asistanı'}</CardTitle>
+            <Button variant="ghost" size="icon" onClick={toggleFullscreen}>
+              {isFullscreen ? <Minimize2 /> : <Maximize2 />}
             </Button>
-          </Link>
-          <h1 className="text-2xl font-bold">SynBot Chat</h1>
-          <Badge variant="outline" className="ml-auto gap-1 px-2">
-            <div className="h-2 w-2 rounded-full bg-green-500"></div>
-            <span>Çevrimiçi</span>
-          </Badge>
-        </div>
-      )}
-      
-      <Card className={`border-2 border-[#00a0d2]/20 overflow-hidden ${isFullscreen ? 'flex-1 flex flex-col' : ''}`}>
-        <CardHeader className="bg-[#00a0d2]/5 border-b">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src="/images/synbot-avatar.png" />
-              <AvatarFallback className="bg-gradient-to-br from-[#ffc72c] to-[#00a0d2] text-white">SB</AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle>{isFullscreen ? 'SynBot' : 'SynBot Direct (Gemini API)'}</CardTitle>
-              {!isFullscreen && (
-                <p className="text-xs text-muted-foreground">Doğrudan API bağlantısı ile çalışan versiyon</p>
-              )}
-            </div>
           </div>
+          <p className="text-sm text-muted-foreground">
+              Bu sayfa SynBot ile direkt iletişim kurmanızı sağlar. Turkcell sistemleri, eğitim içerikleri ve iş süreçleri hakkında sorular sorabilirsiniz.
+          </p>
         </CardHeader>
         
-        <CardContent className={`p-0 ${isFullscreen ? 'flex-1 overflow-hidden flex flex-col' : ''}`}>
-          <div className={`${isFullscreen ? 'flex-1 ' : 'h-[500px] '}overflow-y-auto p-4 space-y-4`}>
-            {messages.map((msg, index) => (
-              <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
-                    {msg.role === 'user' ? (
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        U
-                      </AvatarFallback>
-                    ) : (
-                      <>
-                        <AvatarImage src="/images/synbot-avatar.png" />
-                        <AvatarFallback className="bg-gradient-to-br from-[#ffc72c] to-[#00a0d2] text-white">SB</AvatarFallback>
-                      </>
-                    )}
-                  </Avatar>
+        <CardContent className="flex-1 p-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              {messages.map((msg, index) => (
+                <div 
+                  key={index} 
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2 mb-4`}
+                >
+                  {msg.role === 'assistant' && (
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>SB</AvatarFallback>
+                      <AvatarImage src="/icons/synbot-icon.png" alt="SynBot" />
+                    </Avatar>
+                  )}
+                  
                   <div 
-                    className={`p-3 rounded-lg ${
+                    className={`rounded-lg p-3 max-w-[85%] ${
                       msg.role === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
+                        ? 'bg-primary text-primary-foreground ml-auto' 
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          code({className, children, ...props}) {
+                            const match = /language-(\w+)/.exec(className || '');
+                            return className?.includes('language-') ? (
+                              <CodeBlock
+                                language={(match && match[1]) || ''}
+                                value={String(children).replace(/\n$/, '')}
+                                {...props}
+                              />
+                            ) : (
+                              <code className="bg-muted-foreground/20 px-1 py-0.5 rounded text-sm" {...props}>
+                                {children}
+                              </code>
+                            );
+                          }
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                    <div className="text-xs text-right mt-1 opacity-70">
+                      {msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </div>
+                  </div>
+                  
+                  {msg.role === 'user' && (
+                    <Avatar className="h-8 w-8 bg-primary">
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {session?.user?.name?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                      <AvatarImage src={session?.user?.image || ""} alt="User" />
+                    </Avatar>
+                  )}
+                </div>
+              ))}
+              
+              {isLoading && (
+                <div className="flex justify-start gap-2 mb-4">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>SB</AvatarFallback>
+                    <AvatarImage src="/icons/synbot-icon.png" alt="SynBot" />
+                  </Avatar>
+                  <div className="bg-muted rounded-lg p-3 flex items-center gap-2">
+                    <div className="dot-flashing"></div>
+                    <span className="text-sm">SynBot yanıt oluşturuyor...</span>
                   </div>
                 </div>
-              </div>
-            ))}
-            
-            {loading && (
-              <div className="flex justify-center">
-                <RefreshCcw className="h-6 w-6 animate-spin text-[#00a0d2]" />
-              </div>
-            )}
-          </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
         </CardContent>
         
-        {error && (
-          <div className="px-4 py-2">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Hata</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          </div>
-        )}
-        
-        <CardFooter className="border-t p-4">
+        <CardFooter className="p-4 border-t">
           <form onSubmit={handleSubmit} className="flex w-full gap-2">
-            <Input 
-              value={query} 
-              onChange={(e) => setQuery(e.target.value)} 
-              placeholder={isFullscreen ? "Turkcell sistemleri veya süreçleri hakkında bir soru sorun..." : "SynBot'a bir şey sorun..."} 
-              className="flex-1" 
-              disabled={loading}
+            <Input
+              placeholder="Mesajınızı yazın..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={isLoading}
+              className="flex-1"
             />
-            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-[#ffc72c] to-[#00a0d2] text-white hover:opacity-90">
+            <Button type="submit" disabled={isLoading || !input.trim()}>
               <Send className="h-4 w-4" />
             </Button>
           </form>
         </CardFooter>
       </Card>
       
-      {!isFullscreen && (
-        <div className="mt-6">
-          <Alert className="bg-amber-50 border-amber-200">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-800">Dikkat</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              Bu sayfa SynBot'u bypass edip doğrudan Gemini API'ye istek atıyor. Gemini API çalışıyorsa, bu sayfada yanıt alabilirsiniz.
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
+      <style jsx global>{`
+        .dot-flashing {
+          position: relative;
+          width: 10px;
+          height: 10px;
+          border-radius: 5px;
+          background-color: #6b7280;
+          animation: dot-flashing 1s infinite linear alternate;
+          animation-delay: .5s;
+        }
+        
+        .dot-flashing::before, .dot-flashing::after {
+          content: '';
+          display: inline-block;
+          position: absolute;
+          top: 0;
+        }
+        
+        .dot-flashing::before {
+          left: -15px;
+          width: 10px;
+          height: 10px;
+          border-radius: 5px;
+          background-color: #6b7280;
+          animation: dot-flashing 1s infinite alternate;
+          animation-delay: 0s;
+        }
+        
+        .dot-flashing::after {
+          left: 15px;
+          width: 10px;
+          height: 10px;
+          border-radius: 5px;
+          background-color: #6b7280;
+          animation: dot-flashing 1s infinite alternate;
+          animation-delay: 1s;
+        }
+        
+        @keyframes dot-flashing {
+          0% {
+            background-color: #6b7280;
+          }
+          50%, 100% {
+            background-color: #e5e7eb;
+          }
+        }
+      `}</style>
     </div>
   );
 } 

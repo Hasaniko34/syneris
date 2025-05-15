@@ -35,9 +35,17 @@ export async function POST(request: NextRequest) {
 
     console.log(`Processing message for session: ${sessionId || 'direct-api'}, message: "${message.substring(0, 50)}..."`);
     
-    // Get API key directly from the .env.local file
-    const apiKey = process.env.GOOGLE_GEMINI_API_KEY || "AIzaSyDfJ4ZDvYDsC4Cq8lksklgFJDIzpwKgyxk";
+    // Get API key from environment variables
+    const apiKey = process.env.SYNBOT_API_KEY || process.env.GOOGLE_GEMINI_API_KEY;
     console.log("API key available:", !!apiKey);
+
+    if (!apiKey) {
+      return NextResponse.json({
+        success: false,
+        message: "API anahtarı bulunamadı",
+        response: "SynBot şu anda hizmet veremiyor. Lütfen daha sonra tekrar deneyin.",
+      }, { status: 500 });
+    }
 
     // Prepare system message to contextualize the assistant as SynBot
     const systemMessage = `
@@ -50,54 +58,35 @@ export async function POST(request: NextRequest) {
     - Turkcell sistemlerinde hata önleyici uyarılar ve kısa yollar
     
     Yanıtlarında Turkcell terminolojisini kullan. Asla "yapay zeka" olduğundan ya da "AI model" olduğundan bahsetme.
-    Sen bir "Eğitim Asistanı"sın. Google, Gemini veya OpenAI gibi terimler kullanma.
+    Sen bir "Eğitim Asistanı"sın.
     `;
 
-    // Use one of the available models - gemini-1.5-flash is more stable than 2.0
-    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    // Configure API endpoint and request
+    const apiUrl = process.env.SYNBOT_API_URL || "https://synbot-api.turkcell.com.tr/v1/generate";
     
-    // Properly format the request based on Gemini API documentation
+    // Format request payload based on API specifications
     const requestBody = {
-      contents: [
-        {
-          parts: [
-            {
-              text: systemMessage,
-            },
-          ],
-        },
-        {
-          parts: [
-            {
-              text: message,
-            },
-          ],
-        },
-      ],
-      generationConfig: {
+      prompt: systemMessage,
+      user_input: message,
+      parameters: {
         temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 2048
+        max_tokens: 2048
       }
     };
 
-    console.log("Sending request to Gemini API");
+    console.log("Sending request to SynBot API");
     
     // Send request with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 seconds timeout
     
     try {
-      // Construct the full URL with the API key
-      const fullUrl = `${apiUrl}?key=${apiKey}`;
-      
-      console.log("Making API request to:", apiUrl);
-      
-      const response = await fetch(fullUrl, {
+      // Make API request
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
         },
         body: JSON.stringify(requestBody),
         signal: controller.signal,
@@ -117,36 +106,14 @@ export async function POST(request: NextRequest) {
       }
   
       // Parse response
-      const responseText = await response.text();
-      console.log("Raw response:", responseText.substring(0, 150) + "...");
+      const responseData = await response.json();
+      console.log("API response received:", JSON.stringify(responseData).substring(0, 150) + "...");
       
-      let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log("API response received:", JSON.stringify(data).substring(0, 150) + "...");
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        
-        // Fallback to static response if parsing fails
-        return getStaticResponse(message, sessionId, startTime);
-      }
-  
-      // Extract the response text - format may be different
-      let aiResponse = "";
-
-      if (data?.candidates && data.candidates[0]?.content?.parts && data.candidates[0].content.parts[0]?.text) {
-        // New format
-        aiResponse = data.candidates[0].content.parts[0].text;
-      } else if (data?.candidates && data.candidates[0]?.text) {
-        // Alternative format
-        aiResponse = data.candidates[0].text;
-      } else if (data?.text) {
-        // Simple format
-        aiResponse = data.text;
-      } else {
-        console.error("Unexpected API response format:", data);
-        
-        // Fallback to static response if format is unexpected
+      // Extract response content from API result
+      const aiResponse = responseData.output || responseData.response || responseData.generated_text || "";
+      
+      if (!aiResponse) {
+        console.error("Empty response from API:", responseData);
         return getStaticResponse(message, sessionId, startTime);
       }
   
