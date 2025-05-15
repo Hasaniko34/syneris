@@ -9,7 +9,19 @@ export async function POST(request: NextRequest) {
 
   try {
     // Parse request
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+      console.log("Request body:", JSON.stringify(body).substring(0, 200));
+    } catch (parseError) {
+      console.error("Request parsing error:", parseError);
+      return NextResponse.json({
+        success: false,
+        message: "Geçersiz istek formatı",
+        response: "İsteğiniz işlenirken bir sorun oluştu. Lütfen tekrar deneyin.",
+      }, { status: 400 });
+    }
+
     const { message, sessionId } = body;
 
     // Check if message is empty
@@ -25,6 +37,8 @@ export async function POST(request: NextRequest) {
     
     // Get API key from environment variable
     const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    console.log("API key available:", !!apiKey);
+    
     if (!apiKey) {
       console.error("API anahtarı bulunamadı, demo yanıt dönülüyor");
       
@@ -57,8 +71,26 @@ export async function POST(request: NextRequest) {
     Sen bir "Eğitim Asistanı"sın. Google, Gemini veya OpenAI gibi terimler kullanma.
     `;
 
+    try {
+      // Test API response directly in a simpler format
+      return NextResponse.json({
+        success: true,
+        message: "TEST MODE",
+        responseTime: 100,
+        response: `Merhaba, ben SynBot - Turkcell'in eğitim asistanıyım. Şu anda test modundayım. Sorduğunuz soru: "${message}"\n\nSyneris platformu, Turkcell çalışanları için özelleştirilmiş bir eğitim ve adaptasyon platformudur. Eğitim içerikleri, iş süreçleri ve sistemler hakkında sorularınızı yanıtlayabilirim. Nasıl yardımcı olabilirim?`,
+        requestDetails: {
+          messageLength: message.length,
+          sessionId: sessionId || "direct-api",
+          timestamp: new Date().toISOString(),
+          isTestMode: true
+        }
+      });
+    } catch (testError) {
+      console.error("Test mode error:", testError);
+    }
+
     // Prepare request to API
-    const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
     const requestBody = {
       contents: [
         {
@@ -84,7 +116,7 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    console.log("Sending request to language model API");
+    console.log("Sending request to API");
     
     // Send request with timeout
     const controller = new AbortController();
@@ -92,7 +124,7 @@ export async function POST(request: NextRequest) {
     
     try {
       // Construct the full URL with the API key
-      const fullUrl = `${geminiUrl}?key=${apiKey}`;
+      const fullUrl = `${apiUrl}?key=${apiKey}`;
       
       const response = await fetch(fullUrl, {
         method: "POST",
@@ -108,7 +140,7 @@ export async function POST(request: NextRequest) {
       // Check if response is valid
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`API error: ${response.status}`, errorText);
+        console.error(`API error ${response.status}:`, errorText);
         return NextResponse.json({
           success: false,
           message: `SynBot yanıt hatası: ${response.status}`,
