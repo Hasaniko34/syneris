@@ -35,27 +35,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`Processing message for session: ${sessionId || 'direct-api'}, message: "${message.substring(0, 50)}..."`);
     
-    // Get API key from environment variable
-    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-    console.log("API key available:", !!apiKey);
-    
-    if (!apiKey) {
-      console.error("API anahtarı bulunamadı, demo yanıt dönülüyor");
-      
-      // Return a demo response instead of error when API key is missing (for development)
-      return NextResponse.json({
-        success: true,
-        message: "DEV MODE - API KEY YOK",
-        responseTime: 100,
-        response: `Merhaba, ben SynBot - Turkcell'in eğitim asistanıyım. Şu anda sistemde API anahtarı tanımlanmadığı için sınırlı yanıtlar verebiliyorum.\n\nSorduğunuz soru: "${message}"\n\nSize nasıl yardımcı olabilirim? Turkcell sistemleri, eğitim içerikleri veya iş süreçleri hakkında sorularınızı yanıtlayabilirim.`,
-        requestDetails: {
-          messageLength: message.length,
-          sessionId: sessionId || "direct-api",
-          timestamp: new Date().toISOString(),
-          isDemoResponse: true
-        }
-      });
-    }
+    // Get API key directly from the .env.local file
+    const apiKey = "AIzaSyDfJ4ZDvYDsC4Cq8lksklgFJDIzpwKgyxk";
+    console.log("Using direct API key");
 
     // Prepare system message to contextualize the assistant as SynBot
     const systemMessage = `
@@ -71,8 +53,10 @@ export async function POST(request: NextRequest) {
     Sen bir "Eğitim Asistanı"sın. Google, Gemini veya OpenAI gibi terimler kullanma.
     `;
 
-    // Prepare request to API
-    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    // Use one of the available models - gemini-1.5-flash is more stable than 2.0
+    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    
+    // Properly format the request based on Gemini API documentation
     const requestBody = {
       contents: [
         {
@@ -98,15 +82,17 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    console.log("Sending request to Gemini-2.0-flash API");
+    console.log("Sending request to Gemini API");
     
     // Send request with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 seconds timeout
     
     try {
       // Construct the full URL with the API key
       const fullUrl = `${apiUrl}?key=${apiKey}`;
+      
+      console.log("Making API request to:", apiUrl);
       
       const response = await fetch(fullUrl, {
         method: "POST",
@@ -118,6 +104,8 @@ export async function POST(request: NextRequest) {
       });
   
       clearTimeout(timeoutId);
+      
+      console.log("API response status:", response.status);
       
       // Check if response is valid
       if (!response.ok) {
