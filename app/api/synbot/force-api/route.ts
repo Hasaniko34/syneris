@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Zorla Gemini API'ye istek atıp test yapan endpoint
+ * SynBot - Turkcell çalışanları için özelleştirilmiş eğitim asistanı API endpoint'i
  */
 export async function POST(request: NextRequest) {
-  console.log("Force API request received");
+  console.log("SynBot API request received");
   const startTime = performance.now();
 
   try {
@@ -26,14 +26,14 @@ export async function POST(request: NextRequest) {
     // Get API key from environment variable
     const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("Gemini API anahtarı bulunamadı, demo yanıt dönülüyor");
+      console.error("API anahtarı bulunamadı, demo yanıt dönülüyor");
       
       // Return a demo response instead of error when API key is missing (for development)
       return NextResponse.json({
         success: true,
         message: "DEV MODE - API KEY YOK",
         responseTime: 100,
-        response: `Bu bir test yanıtıdır. Gerçek API anahtarı olmadığı için Gemini API'ye istek atılamadı.\n\nSorduğunuz soru: "${message}"`,
+        response: `Merhaba, ben SynBot - Turkcell'in eğitim asistanıyım. Şu anda sistemde API anahtarı tanımlanmadığı için sınırlı yanıtlar verebiliyorum.\n\nSorduğunuz soru: "${message}"\n\nSize nasıl yardımcı olabilirim? Turkcell sistemleri, eğitim içerikleri veya iş süreçleri hakkında sorularınızı yanıtlayabilirim.`,
         requestDetails: {
           messageLength: message.length,
           sessionId: sessionId || "direct-api",
@@ -43,10 +43,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Prepare request to Gemini API
+    // Prepare system message to contextualize the assistant as SynBot
+    const systemMessage = `
+    Sen Turkcell çalışanlarına özel olan Syneris platformunun eğitim asistanı SynBot'sun.
+    Aşağıdaki konularda Turkcell çalışanlarına yardımcı olursun:
+    - Eğitim içerikleri ve modülleri hakkında bilgi verme
+    - Turkcell CRM, OSS/BSS ve Faturalama sistemleri
+    - Adım adım ekran eğitimleri ve iş süreçleri
+    - Çağrı Merkezi, Saha Operasyon ve Back-office pozisyonları için rehberlik
+    - Turkcell sistemlerinde hata önleyici uyarılar ve kısa yollar
+    
+    Yanıtlarında Turkcell terminolojisini kullan. Asla "yapay zeka" olduğundan ya da "AI model" olduğundan bahsetme.
+    Sen bir "Eğitim Asistanı"sın. Google, Gemini veya OpenAI gibi terimler kullanma.
+    `;
+
+    // Prepare request to API
     const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
     const requestBody = {
       contents: [
+        {
+          parts: [
+            {
+              text: systemMessage,
+            },
+          ],
+        },
         {
           parts: [
             {
@@ -63,16 +84,15 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    console.log("Sending request to Gemini API with model: gemini-2.0-flash");
+    console.log("Sending request to language model API");
     
-    // Send request to Gemini API with timeout
+    // Send request with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
     
     try {
       // Construct the full URL with the API key
       const fullUrl = `${geminiUrl}?key=${apiKey}`;
-      console.log(`API URL (without key): ${geminiUrl}`);
       
       const response = await fetch(fullUrl, {
         method: "POST",
@@ -88,12 +108,12 @@ export async function POST(request: NextRequest) {
       // Check if response is valid
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Gemini API error: ${response.status}`, errorText);
+        console.error(`API error: ${response.status}`, errorText);
         return NextResponse.json({
           success: false,
-          message: `Gemini API hatası: ${response.status}`,
+          message: `SynBot yanıt hatası: ${response.status}`,
           error: errorText,
-          response: `Gemini API'den yanıt alınamadı (${response.status}). Lütfen daha sonra tekrar deneyin.`,
+          response: `Üzgünüm, şu anda sorunuzu yanıtlarken teknik bir sorun yaşıyorum. Turkcell IT desteği ile sorunu çözmeye çalışıyoruz. Lütfen daha sonra tekrar deneyin.`,
         }, { status: 500 });
       }
   
@@ -104,22 +124,22 @@ export async function POST(request: NextRequest) {
       let data;
       try {
         data = JSON.parse(responseText);
-        console.log("Gemini API response received:", JSON.stringify(data).substring(0, 150) + "...");
+        console.log("API response received:", JSON.stringify(data).substring(0, 150) + "...");
       } catch (parseError) {
         console.error("JSON parse error:", parseError);
         return NextResponse.json({
           success: false,
           message: "API yanıtı JSON olarak ayrıştırılamadı",
           error: String(parseError),
-          response: "API yanıtını işlerken teknik bir sorun oluştu. Lütfen daha sonra tekrar deneyin.",
+          response: "Yanıtınızı işlerken teknik bir sorun oluştu. Turkcell Akademi ekibimiz sorunu inceliyor. Lütfen kısa bir süre sonra tekrar deneyin.",
         }, { status: 500 });
       }
   
-      // Extract the AI response text - Gemini 2.0 response format may be different
+      // Extract the response text - format may be different
       let aiResponse = "";
 
       if (data?.candidates && data.candidates[0]?.content?.parts && data.candidates[0].content.parts[0]?.text) {
-        // New Gemini 2.0 format
+        // New format
         aiResponse = data.candidates[0].content.parts[0].text;
       } else if (data?.candidates && data.candidates[0]?.text) {
         // Alternative format
@@ -128,12 +148,12 @@ export async function POST(request: NextRequest) {
         // Simple format
         aiResponse = data.text;
       } else {
-        console.error("Unexpected Gemini API response format:", data);
+        console.error("Unexpected API response format:", data);
         return NextResponse.json({
           success: false,
           message: "API yanıtı beklenmeyen bir formatta",
           debug: data,
-          response: "API'den beklenmeyen formatta yanıt alındı. Lütfen daha sonra tekrar deneyin.",
+          response: "SynBot şu anda yanıt veremiyor. Turkcell Akademi ekibimiz sistemde bakım yapıyor olabilir. Lütfen daha sonra tekrar deneyin.",
         }, { status: 500 });
       }
   
@@ -157,29 +177,29 @@ export async function POST(request: NextRequest) {
       clearTimeout(timeoutId);
       
       // Handle fetch errors (like timeout)
-      console.error("Gemini API fetch error:", fetchError.name, fetchError.message);
+      console.error("API fetch error:", fetchError.name, fetchError.message);
       
       if (fetchError.name === "AbortError") {
         return NextResponse.json({
           success: false,
-          message: "Gemini API timeout - yanıt çok uzun sürdü",
-          response: "Yanıt almak çok uzun sürdü. Lütfen daha sonra tekrar deneyin veya daha kısa bir mesaj girin.",
+          message: "SynBot timeout - yanıt çok uzun sürdü",
+          response: "Yanıt oluşturmak beklenenden uzun sürüyor. Lütfen ağ bağlantınızı kontrol edin veya daha kısa bir soru sorun. Turkcell sistemlerinde yoğunluk olabilir.",
         }, { status: 504 });
       }
       
       return NextResponse.json({
         success: false,
-        message: `Gemini API bağlantı hatası: ${fetchError.message}`,
-        response: "API'ye bağlanırken bir sorun oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
+        message: `SynBot bağlantı hatası: ${fetchError.message}`,
+        response: "Şu anda Turkcell sistemlerine bağlanırken bir sorun yaşıyorum. Lütfen ağ bağlantınızı kontrol edin ve tekrar deneyin.",
       }, { status: 500 });
     }
   } catch (error: any) {
     // Handle general errors
-    console.error("Force API genel hata:", error);
+    console.error("SynBot genel hata:", error);
     return NextResponse.json({
       success: false,
       message: `İşlem hatası: ${error.message}`,
-      response: "Bir sistem hatası oluştu. Lütfen daha sonra tekrar deneyin.",
+      response: "Üzgünüm, şu anda sorunuzu işlerken beklenmedik bir sorun oluştu. Turkcell Akademi ekibine bu durumu bildirdik. Lütfen daha sonra tekrar deneyin.",
     }, { status: 500 });
   }
 } 
