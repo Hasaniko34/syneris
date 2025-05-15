@@ -48,7 +48,8 @@ import {
   Star,
   RefreshCw,
   ThumbsDown,
-  Copy
+  Copy,
+  Mail
 } from "lucide-react";
 import { Progress } from '@/components/ui/progress';
 import Image from 'next/image';
@@ -68,7 +69,7 @@ import { SynbotTrainingCard } from "@/components/synbot/SynbotTrainingCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Metadata } from "next";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // SearchParams için wrapper component
 function SearchParamsWrapper({ children }: { children: (props: { sessionId: string | null }) => React.ReactNode }) {
@@ -267,6 +268,11 @@ interface Session {
   updatedAt: Date;
 }
 
+export const metadata = {
+  title: "SynBot - Eğitim Asistanı | Turkcell",
+  description: "Turkcell Akademi eğitim asistanı"
+};
+
 export default function SynbotPage() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -381,29 +387,47 @@ export default function SynbotPage() {
   }, [sessionIdFromParam]);
 
   return (
-    <div className="container mx-auto py-5 h-[calc(100vh-4rem)]">
-      <div className="grid grid-cols-1 gap-4 h-full"> 
-        <div className="col-span-1 h-full">
-          <div className="bg-card rounded-lg shadow overflow-hidden h-full">
-            <div className="flex flex-col h-full">
-              <div className="p-4 border-b">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <span className="bg-primary/10 text-primary p-1 rounded">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bot"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
-                  </span>
-                  SynBot - Turkcell Eğitim Asistanı
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Eğitim içerikleri, sistem rehberleri ve iş süreçleri hakkında bilgi almak için SynBot'a sorun.
-                </p>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <SynbotChatUI />
-              </div>
-            </div>
-          </div>
+    <div className="container mx-auto py-4 space-y-4">
+      <div className="grid grid-cols-1 gap-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-semibold">Turkcell Akademi Asistanı</h1>
+          <Link href="/dashboard/synbot/email-templates">
+            <Button variant="outline" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              <span>Kurumsal E-mail Şablonları</span>
+            </Button>
+          </Link>
         </div>
+        
+        <Tabs defaultValue="chat" className="w-full">
+          <TabsList className="grid w-full grid-cols-1 mb-4">
+            <TabsTrigger value="chat">SynBot Chat</TabsTrigger>
+          </TabsList>
+          <TabsContent value="chat" className="h-[calc(100vh-200px)]">
+            <Suspense fallback={<ChatSkeleton />}>
+              <SynbotChatUI />
+            </Suspense>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
+  );
+}
+
+function ChatSkeleton() {
+  return (
+    <Card className="w-full h-full flex flex-col">
+      <CardHeader className="p-4 flex-shrink-0">
+        <CardTitle>Yükleniyor...</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 p-4">
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-3/4 rounded-lg" />
+          <Skeleton className="h-12 w-4/5 rounded-lg" />
+          <Skeleton className="h-12 w-2/3 rounded-lg" />
+          <Skeleton className="h-12 w-3/4 rounded-lg" />
+        </div>
+      </CardContent>
+    </Card>
   );
 } 
