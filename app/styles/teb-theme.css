@@ -1,0 +1,180 @@
+/* TEB Kurumsal Renkleri */
+:root {
+  --teb-primary: 0 95 158; /* #005f9e */
+  --teb-secondary: 0 72 122; /* #00487a */
+  --teb-accent: 0 144 200; /* #0090c8 */
+  --teb-highlight: 63 193 201; /* #3fc1c9 */
+  --teb-dark: 54 79 107; /* #364f6b */
+  --teb-success: 34 197 94; /* #22c55e */
+  --teb-warning: 234 179 8; /* #eab308 */
+  --teb-error: 239 68 68; /* #ef4444 */
+}
+
+/* TEB Tema Değişkenleri */
+.teb-theme {
+  --background: 210 50% 98%;
+  --foreground: 215 35% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 215 25% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 25% 15%;
+  --primary: var(--teb-primary);
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215 25% 40%;
+  --accent: var(--teb-accent);
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: var(--teb-primary);
+  --radius: 0.75rem;
+}
+
+.teb-theme.dark {
+  --background: 224 71.4% 5%;
+  --foreground: 210 20% 98%;
+  --card: 224 71.4% 7%;
+  --card-foreground: 210 20% 98%;
+  --popover: 224 71.4% 5%;
+  --popover-foreground: 210 20% 98%;
+  --primary: var(--teb-primary);
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 27.9% 16.9%;
+  --secondary-foreground: 210 20% 98%;
+  --muted: 215 27.9% 16.9%;
+  --muted-foreground: 217.9 10.6% 70%;
+  --accent: var(--teb-accent);
+  --accent-foreground: 210 20% 98%;
+  --destructive: 0 62.8% 50.6%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 215 27.9% 16.9%;
+  --input: 215 27.9% 16.9%;
+  --ring: var(--teb-primary);
+}
+
+/* TEB UI Bileşenleri */
+.teb-button {
+  @apply bg-[#005f9e] hover:bg-[#004b7f] text-white transition-colors;
+}
+
+.teb-button-outline {
+  @apply border-[#005f9e]/20 hover:border-[#005f9e]/40 hover:bg-[#005f9e]/10 text-[#005f9e] transition-colors;
+}
+
+.teb-card {
+  @apply border-[#005f9e]/10 hover:border-[#005f9e]/20 transition-colors;
+}
+
+.teb-progress {
+  @apply bg-[#e0f0fa];
+}
+
+.teb-progress-indicator {
+  @apply bg-[#005f9e];
+}
+
+/* TEB Badge Stilleri */
+.teb-badge {
+  @apply bg-[#005f9e]/10 text-[#005f9e] border-[#005f9e]/20 flex items-center gap-1;
+}
+
+.teb-badge-success {
+  @apply bg-emerald-100 text-emerald-800 border-emerald-200 flex items-center gap-1;
+}
+
+.teb-badge-warning {
+  @apply bg-amber-100 text-amber-800 border-amber-200 flex items-center gap-1;
+}
+
+.teb-badge-error {
+  @apply bg-red-100 text-red-800 border-red-200 flex items-center gap-1;
+}
+
+.teb-badge-muted {
+  @apply bg-gray-100 text-gray-700 border-gray-200 flex items-center gap-1;
+}
+
+.teb-badge-accent {
+  @apply bg-[#0090c8]/10 text-[#0090c8] border-[#0090c8]/20 flex items-center gap-1;
+}
+
+.teb-badge-highlight {
+  @apply bg-[#3fc1c9]/10 text-[#3fc1c9] border-[#3fc1c9]/20 flex items-center gap-1;
+}
+
+/* TEB Input Stilleri */
+.teb-input {
+  @apply border-[#005f9e]/20 focus-visible:ring-[#005f9e] focus-visible:border-[#005f9e] transition-colors;
+}
+
+.teb-input-error {
+  @apply border-red-300 focus-visible:ring-red-500 focus-visible:border-red-500;
+}
+
+.teb-input-success {
+  @apply border-emerald-300 focus-visible:ring-emerald-500 focus-visible:border-emerald-500;
+}
+
+.teb-hover-effect {
+  @apply hover:bg-[#005f9e]/10 hover:text-[#005f9e] transition-colors;
+}
+
+.teb-gradient {
+  @apply bg-gradient-to-r from-[#005f9e] to-[#0090c8];
+}
+
+.teb-gradient-light {
+  @apply bg-gradient-to-r from-[#e0f0fa] to-white;
+}
+
+.teb-title {
+  @apply text-[#005f9e] font-bold;
+}
+
+.teb-link {
+  @apply text-[#005f9e] hover:text-[#004b7f] transition-colors;
+}
+
+/* TEB Özel Efektler */
+.teb-card-hover {
+  @apply hover:shadow-lg hover:shadow-[#005f9e]/10 transition-all;
+}
+
+.teb-input-focus {
+  @apply focus-visible:ring-[#005f9e] focus-visible:border-[#005f9e];
+}
+
+.teb-dropdown-item {
+  @apply hover:bg-[#005f9e]/10 cursor-pointer;
+}
+
+/* TEB Animasyonlar */
+@keyframes teb-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.teb-pulse {
+  animation: teb-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* TEB Desen ve Arka Planlar */
+.teb-pattern {
+  background-image: radial-gradient(rgba(0, 95, 158, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.teb-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 95, 158, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 95, 158, 0.05) 1px, transparent 1px);
+} 

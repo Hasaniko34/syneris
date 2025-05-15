@@ -1,0 +1,1248 @@
+'use client';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  Card, CardContent, CardDescription, CardFooter, 
+  CardHeader, CardTitle 
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  Tabs, TabsContent, TabsList, TabsTrigger 
+} from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { 
+  Bot, Send, Sparkles, HelpCircle, PlusCircle, 
+  ChevronDown, X, User, Clock, ThumbsUp, ThumbsDown,
+  BookOpen, Lightbulb, AlertTriangle, Code, Download, MessageSquare, Search, Settings, Menu, History, ArrowLeft, RefreshCcw, AlertCircle, Brain, BarChart3, GraduationCap, TrendingUp, CheckCircle, LineChart, PieChart, Star, CreditCard, Check, Mail, Loader2, Copy
+} from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { v4 as uuidv4 } from 'uuid';
+import Markdown from 'react-markdown';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from "@/components/ui/use-toast";
+import { FeedbackType, SynbotInteractionType, SessionStatus as SynbotSessionStatus } from '@/lib/types/SynbotTypes';
+import LoadingSpinner from '@/components/ui/loading-spinner';
+import { SynbotChatUI } from "@/components/synbot/SynbotChatUI";
+import { SynbotAnalyzeErrorCard } from "@/components/synbot/SynbotAnalyzeErrorCard";
+import { SynbotInsightsCard } from "@/components/synbot/SynbotInsightsCard";
+import { SynbotTrainingCard } from "@/components/synbot/SynbotTrainingCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+
+// SynBot mesaj tipleri
+type MessageRole = 'user' | 'assistant' | 'system';
+
+interface Message {
+  id: string;
+  role: MessageRole;
+  content: string;
+  timestamp: Date;
+  liked?: boolean;
+  disliked?: boolean;
+  isCode?: boolean;
+  type: SynbotInteractionType;
+  feedback?: FeedbackType;
+  confidence?: number;
+}
+
+interface BotSuggestion {
+  id: string;
+  text: string;
+  icon?: React.ReactNode;
+}
+
+interface ConversationHistory {
+  id: string;
+  title: string;
+  date: Date;
+  messageCount: number;
+}
+
+// Örnek konversasyon geçmişi - Turkcell için özelleştirilmiş
+const sampleConversations: ConversationHistory[] = [
+  { id: '1', title: 'Dijital Kanal Yönetimi Eğitimi', date: new Date('2023-12-27'), messageCount: 12 },
+  { id: '2', title: 'Faturalama Modülü Soruları', date: new Date('2023-12-25'), messageCount: 8 },
+  { id: '3', title: 'Müşteri Talep Kayıt Hatası', date: new Date('2023-12-22'), messageCount: 5 },
+  { id: '4', title: 'BTS Kurulum Adımları', date: new Date('2023-12-20'), messageCount: 7 },
+  { id: '5', title: 'Kampanya Tanımlama Süreci', date: new Date('2023-12-15'), messageCount: 10 },
+];
+
+// Örnek öneriler - Turkcell için özelleştirilmiş
+const botSuggestions: BotSuggestion[] = [
+  { id: '1', text: 'Yeni numara tahsis işlemi nasıl yapılır?', icon: <BookOpen className="h-4 w-4" /> },
+  { id: '2', text: 'Kurumsal müşteri için VPN oluşturma adımlarını gösterir misin?', icon: <HelpCircle className="h-4 w-4" /> },
+  { id: '3', text: 'BiP Destek sürecinde müşteri taleplerini nasıl kaydederim?', icon: <AlertTriangle className="h-4 w-4" /> },
+  { id: '4', text: 'Saha operasyonlarında BTS kurulum adımlarını göster', icon: <TrendingUp className="h-4 w-4" /> },
+  { id: '5', text: 'Faturalama editöründe yeni kampanya nasıl tanımlanır?', icon: <CreditCard className="h-4 w-4" /> },
+];
+
+// Kod örnekleri ve açıklamalar için formatlamayı sağlayacak yardımcı fonksiyon
+const formatMessage = (content: string) => {
+  // Kod bloklarını işaretlemek için regex
+  const codeBlockRegex = /```([\s\S]*?)```/g;
+  const inlineCodeRegex = /`([^`]+)`/g;
+  
+  // Markdown bağlantılarını işaretlemek için regex
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  
+  // Listeleri işaretlemek için regex
+  const listItemRegex = /^\s*[-*]\s+(.+)$/gm;
+  
+  // Başlıkları işaretlemek için regex
+  const headingRegex = /^(#{1,6})\s+(.+)$/gm;
+  
+  // Kalın ve italik metinleri işaretlemek için regex
+  const boldRegex = /\*\*([^*]+)\*\*/g;
+  if (!content.includes('```')) return <p>{content}</p>;
+
+  const parts = content.split(/(```(?:.*?\n)?.*?```)/s);
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith('```') && part.endsWith('```')) {
+          // Kod bloklarını işaretlemek için regex
+          const code = part.slice(3, -3).trim();
+          const language = code.split('\n')[0].trim();
+          const actualCode = language ? code.substring(language.length).trim() : code;
+          
+          return (
+            <div key={index} className="relative my-3 rounded-md bg-muted overflow-hidden">
+              <div className="bg-muted/50 px-4 py-1 text-xs flex justify-between items-center border-b">
+                <span>{language || 'kod'}</span>
+                <button 
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => navigator.clipboard.writeText(actualCode)}
+                >
+                  Kopyala
+                </button>
+              </div>
+              <pre className="p-4 overflow-auto">
+                <code>{actualCode}</code>
+              </pre>
+            </div>
+          );
+        }
+        return <p key={index} className="my-2">{part}</p>;
+      })}
+    </>
+  );
+};
+
+// Her etkileşim türü için rozet rengi - Turkcell kurumsal renkleri
+const badgeColors: Record<SynbotInteractionType, string> = {
+  [SynbotInteractionType.CHAT]: 'bg-[#ffc72c] text-[#333333]', // Turkcell sarı
+  [SynbotInteractionType.TRAINING_GUIDANCE]: 'bg-[#ecf0f1] text-[#333333]', // Gri
+  [SynbotInteractionType.ERROR_CORRECTION]: 'bg-[#e74c3c] text-white', // Hata kırmızı
+  [SynbotInteractionType.RECOMMENDATION]: 'bg-[#2980b9] text-white', // Mavi
+  [SynbotInteractionType.CODE_EXPLANATION]: 'bg-[#3498db] text-white', // Mavi
+  [SynbotInteractionType.TRAINING]: 'bg-[#2ecc71] text-white', // Yeşil
+  [SynbotInteractionType.CODE_GENERATION]: 'bg-[#9b59b6] text-white', // Mor
+  [SynbotInteractionType.ASSESSMENT]: 'bg-[#f39c12] text-white', // Turuncu
+};
+
+// Her etkileşim türü için etiket - Turkcell içeriği
+const interactionLabels: Record<SynbotInteractionType, string> = {
+  [SynbotInteractionType.CHAT]: 'Genel Destek',
+  [SynbotInteractionType.TRAINING_GUIDANCE]: 'Turkcell Sistem Eğitimi',
+  [SynbotInteractionType.ERROR_CORRECTION]: 'Hata Çözümü',
+  [SynbotInteractionType.RECOMMENDATION]: 'Turkcell Servis Önerileri',
+  [SynbotInteractionType.CODE_EXPLANATION]: 'Kod Açıklama',
+  [SynbotInteractionType.TRAINING]: 'Eğitim İçeriği',
+  [SynbotInteractionType.CODE_GENERATION]: 'Kod Oluşturma',
+  [SynbotInteractionType.ASSESSMENT]: 'Değerlendirme'
+};
+
+// Etkileşim arayüzü
+interface Interaction {
+  _id?: string;
+  userMessage: string;
+  botResponse: string;
+  type: SynbotInteractionType;
+  timestamp: Date;
+  feedback?: FeedbackType;
+}
+
+// Oturum arayüzü
+interface Session {
+  sessionId: string;
+  lastMessage: string;
+  lastResponse: string;
+  interactionCount: number;
+  lastInteractionTime: Date;
+  startTime: Date;
+  title: string;
+  status: SynbotSessionStatus;
+  primaryType: SynbotInteractionType;
+  updatedAt: Date;
+}
+
+const SynBotPage = () => {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [message, setMessage] = useState('');
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [view, setView] = useState<'chat' | 'history'>('chat');
+  const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [activeSession, setActiveSession] = useState<string | null>(null);
+  const [interactionType, setInteractionType] = useState<SynbotInteractionType>(SynbotInteractionType.CHAT);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [activeTab, setActiveTab] = useState<string>("chat");
+  const [showFeatureHighlight, setShowFeatureHighlight] = useState(true);
+  const [showFeaturePopup, setShowFeaturePopup] = useState(false);
+  const { toast: showToast, dismiss } = useToast();
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [generatedEmail, setGeneratedEmail] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailContext, setEmailContext] = useState('');
+  const [emailError, setEmailError] = useState('');
+  
+  // Oturum yükleme durumu kontrolü
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    } else if (status === 'authenticated') {
+      // Yeni bir oturum başlat
+      if (!currentSessionId) {
+        setCurrentSessionId(uuidv4());
+      }
+      
+      // Oturum geçmişini yükle
+      loadSessions();
+    }
+  }, [status, router, currentSessionId]);
+  
+  // Mesaj geçmişini yükle
+  useEffect(() => {
+    if (currentSessionId && view === 'chat') {
+      loadInteractions(currentSessionId);
+    }
+  }, [currentSessionId, view]);
+  
+  // Otomatik kaydırma
+  useEffect(() => {
+    scrollToBottom();
+  }, [interactions]);
+  
+  // Otomatik kaydırma fonksiyonu
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  // Oturum geçmişini yükleme
+  const loadSessions = async () => {
+    try {
+      const response = await fetch('/api/synbot');
+      const data = await response.json();
+      
+      if (data.sessions) {
+        setSessions(data.sessions);
+      }
+    } catch (error) {
+      console.error('Oturum geçmişi yüklenirken hata:', error);
+      showToast({
+        title: 'Hata',
+        description: 'Oturum geçmişi yüklenemedi.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  // Etkileşimleri yükleme
+  const loadInteractions = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/synbot?sessionId=${sessionId}`);
+      
+      if (response.status === 404) {
+        console.warn(`Oturum bulunamadı veya yeni bir oturum: ${sessionId}`);
+        // Eğer oturum bulunamadıysa, boş bir etkileşim listesi göster ve devam et
+        setInteractions([]);
+        setMessages([]);
+        return;
+      }
+      
+      if (!response.ok) {
+        // Hata durumunda daha fazla bilgi almaya çalış
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API yanıt hatası:', response.status, errorData);
+        throw new Error(`API yanıt hatası: ${response.status} - ${errorData.message || 'Bilinmeyen hata'}`);
+      }
+      
+      const data = await response.json();
+      
+      // interactions ve messages verileri varsa kullan
+      if (data.interactions) {
+        setInteractions(data.interactions);
+      }
+      
+      if (data.messages) {
+        setMessages(data.messages);
+      } else if (data.interactions && data.interactions.length > 0) {
+        // Eğer sadece interactions varsa, bunları Message formatına dönüştür
+        const convertedMessages: Message[] = [];
+        
+        for (const interaction of data.interactions) {
+          // Kullanıcı mesajı ekle
+          convertedMessages.push({
+            id: interaction._id || uuidv4(),
+            role: 'user',
+            content: interaction.userMessage,
+            timestamp: new Date(interaction.timestamp),
+            type: interaction.type || SynbotInteractionType.CHAT
+          });
+          
+          // Bot yanıtı ekle
+          convertedMessages.push({
+            id: uuidv4(),
+            role: 'assistant',
+            content: interaction.botResponse,
+            timestamp: new Date(interaction.timestamp),
+            type: interaction.type || SynbotInteractionType.CHAT,
+            feedback: interaction.feedback
+          });
+        }
+        
+        setMessages(convertedMessages);
+      }
+      
+      // Son mesaja otomatik kaydır
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    } catch (error) {
+      console.error('Etkileşimler yüklenirken hata:', error);
+      showToast({
+        title: 'Hata',
+        description: 'Sohbet geçmişi yüklenemedi.',
+        variant: 'destructive',
+      });
+      // Hata durumunda boş liste göster
+      setInteractions([]);
+      setMessages([]);
+    }
+  };
+  
+  // Oturum seçme fonksiyonu
+  const selectSession = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    setView('chat');
+  };
+  
+  // Mesaj gönderme fonksiyonu
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!message.trim() || !currentSessionId) return;
+    
+    // Kullanıcı mesajını görüntüle
+    const userInput = message;
+    setMessage('');
+    
+    // Yeni mesaj oluştur
+    const newMessage: Message = {
+      id: uuidv4(),
+      role: 'user',
+      content: userInput,
+      timestamp: new Date(),
+      type: SynbotInteractionType.CHAT
+    };
+    
+    // Kullanıcı mesajını ekle ve görüntüle
+    setMessages(prev => [...prev, newMessage]);
+    setLoading(true);
+    
+    try {
+      const response = await fetch('/api/synbot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userInput,
+          sessionId: currentSessionId,
+          type: interactionType
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API yanıt hatası: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Bot yanıtını oluştur
+        const botMsg: Message = {
+          id: data.data.messageId || uuidv4(),
+          role: 'assistant',
+          content: data.data.response || "Üzgünüm, bir yanıt oluşturulamadı.",
+          timestamp: new Date(data.data.timestamp || Date.now()),
+          type: data.data.type || SynbotInteractionType.CHAT,
+          confidence: data.data.confidence
+        };
+        
+        // Bot yanıtını messages state'ine ekle
+        setMessages(prev => [...prev, botMsg]);
+        
+        // Oturum geçmişini güncelle
+        loadSessions();
+        
+        // Yeni mesaj eklendikten sonra otomatik kaydır
+        setTimeout(() => {
+          scrollToBottom();
+        }, 100);
+      } else {
+        showToast({
+          title: 'Hata',
+          description: data.message || 'Mesaj gönderilemedi.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Mesaj gönderilirken hata:', error);
+      showToast({
+        title: 'Hata',
+        description: 'Sunucuyla bağlantı kurulamadı.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Geri bildirim gönderme fonksiyonu
+  const sendFeedback = async (messageId: string | undefined, feedback: FeedbackType) => {
+    if (!messageId || !currentSessionId) return;
+    
+    try {
+      const response = await fetch(`/api/synbot/sessions/${currentSessionId}/messages`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messageId,
+          feedback,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Mesajları güncelleyerek göster
+        setMessages(prevMessages =>
+          prevMessages.map(message =>
+            message.id === messageId
+              ? { ...message, feedback }
+              : message
+          )
+        );
+        
+        showToast({
+          title: 'Başarılı',
+          description: 'Geri bildiriminiz için teşekkürler!',
+          duration: 3000,
+        });
+      } else {
+        showToast({
+          title: 'Hata',
+          description: data.message || 'Geri bildirim gönderilemedi.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Geri bildirim gönderilirken hata:', error);
+      showToast({
+        title: 'Hata',
+        description: 'Sunucuyla bağlantı kurulamadı.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  // Yeni sohbet başlatma fonksiyonu
+  const startNewChat = () => {
+    const newSessionId = uuidv4();
+    setCurrentSessionId(newSessionId);
+    setMessages([]);
+    setInteractions([]);
+    setView('chat');
+    setActiveSession(null);
+    setInteractionType(SynbotInteractionType.CHAT);
+    
+    // Varsayılan karşılama mesajı ekle
+    const initialMessages: Message[] = [
+      {
+        id: uuidv4(),
+        role: 'assistant',
+        content: 'Merhaba! Ben SynBot, Turkcell\'in yapay zeka destekli eğitim ve adaptasyon asistanıyım. Size hangi sistem, modül veya süreç hakkında yardımcı olabilirim?',
+        timestamp: new Date(),
+        type: SynbotInteractionType.CHAT
+      }
+    ];
+    setMessages(initialMessages);
+  };
+  
+  // Tarih biçimlendirme fonksiyonu
+  const formatDate = (date: Date): string => {
+    return new Date(date).toLocaleDateString('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+  
+  // Saat biçimlendirme fonksiyonu
+  const formatTime = (date: Date): string => {
+    return new Date(date).toLocaleTimeString('tr-TR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+  
+  // Oturumları yükleme
+  useEffect(() => {
+    if (session?.user) {
+      fetchSessions();
+    }
+  }, [session]);
+
+  // Oturumları getir
+  const fetchSessions = async () => {
+    try {
+      const response = await fetch('/api/synbot/sessions');
+      const data = await response.json();
+      if (data.success) {
+        setSessions(data.sessions);
+        
+        // Aktif oturum yoksa ve oturumlar varsa ilk oturumu seç
+        if (!activeSession && data.sessions.length > 0) {
+          setActiveSession(data.sessions[0].sessionId);
+          fetchSessionMessages(data.sessions[0].sessionId);
+        }
+      }
+    } catch (error) {
+      console.error('Oturumlar yüklenirken hata oluştu:', error);
+      showToast({
+        title: 'Hata',
+        description: 'Oturumlar yüklenirken bir sorun oluştu.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  // Oturum mesajlarını getir
+  const fetchSessionMessages = async (sessionId: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/synbot/sessions/${sessionId}/messages`);
+      const data = await response.json();
+      if (data.success) {
+        setMessages(data.messages.map((msg: any) => ({
+          id: msg.id,
+          content: msg.content,
+          isUser: msg.isUser,
+          timestamp: new Date(msg.timestamp),
+          type: msg.type,
+          feedback: msg.feedback,
+          confidence: msg.confidence
+        })));
+      }
+    } catch (error) {
+      console.error('Mesajlar yüklenirken hata oluştu:', error);
+      showToast({
+        title: 'Hata',
+        description: 'Mesajlar yüklenirken bir sorun oluştu.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Yeni oturum oluştur
+  const createNewSession = async () => {
+    try {
+      const response = await fetch('/api/synbot/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: `Yeni Oturum ${new Date().toLocaleDateString('tr-TR')}`,
+          primaryType: interactionType
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setSessions([data.session, ...sessions]);
+        setActiveSession(data.session.sessionId);
+        setMessages([
+          {
+            id: 'welcome',
+            content: 'Merhaba! Ben SynBot, Syneris platformunun yapay zeka asistanıyım. Size nasıl yardımcı olabilirim?',
+            isUser: false,
+            timestamp: new Date(),
+            type: interactionType,
+            confidence: 0.98
+          }
+        ]);
+        
+        showToast({
+          title: 'Başarılı',
+          description: 'Yeni oturum oluşturuldu.',
+        });
+      }
+    } catch (error) {
+      console.error('Oturum oluşturulurken hata oluştu:', error);
+      showToast({
+        title: 'Hata',
+        description: 'Yeni oturum oluşturulurken bir sorun oluştu.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!localStorage.getItem("synbot-welcome-seen") && status === 'authenticated') {
+      localStorage.setItem("synbot-welcome-seen", "true");
+      
+      // Karşılama mesajı göster
+      setTimeout(() => {
+        showToast({
+          title: "TEB Asistan ile tanışın!",
+          description: "TEB'in yapay zeka asistanı, bankacılık işlemlerinizde rehberlik etmek, ürünler hakkında bilgi vermek ve sorunlarınızı çözmek için hizmetinizde.",
+          className: "z-[9999] relative backdrop-blur-sm bg-background/80",
+          action: (
+            <Button variant="default" size="sm" onClick={() => {
+              dismiss();
+              setActiveTab("training");
+            }}>
+              Eğitim Rehberimi Gör
+            </Button>
+          ),
+        });
+      }, 1000);
+    }
+  }, []);
+
+  const dismissFeatureHighlight = () => {
+    setShowFeatureHighlight(false);
+    localStorage.setItem("synbot-highlight-seen", "true");
+  };
+  
+  // Eğer kullanıcı oturumu yükleniyorsa
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <RefreshCcw className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <h3 className="text-lg font-medium">Yükleniyor...</h3>
+        </div>
+      </div>
+    );
+  }
+  
+  // Yeni işlevler
+  const dismissToast = (id?: string) => {
+    if (id) {
+      dismiss(id);
+    } else {
+      dismiss();
+    }
+  };
+
+  // Yeni özellik popup'ını göster
+  const showNewFeatures = () => {
+    setShowFeaturePopup(true);
+    
+    showToast({
+      title: "Yeni Özellikler",
+      description: "TEB Asistan artık daha kapsamlı bankacılık bilgileriyle donatıldı!",
+      action: <Button onClick={() => dismiss()}>Kapat</Button>
+    });
+  };
+
+  // Özellik popup'ını kapat
+  const closeFeaturePopup = () => {
+    setShowFeaturePopup(false);
+  };
+
+  const handleGenerateEmail = async () => {
+    setEmailLoading(true);
+    setEmailError('');
+    setGeneratedEmail('');
+    try {
+      // Gemini API entegrasyonu (örnek fetch, gerçek anahtarınızı .env ile yönetin)
+      const response = await fetch('/api/gemini/generate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: emailSubject, context: emailContext })
+      });
+      const data = await response.json();
+      if (data.success && data.email) {
+        setGeneratedEmail(data.email);
+      } else {
+        setEmailError(data.message || 'E-posta oluşturulamadı.');
+      }
+    } catch (err) {
+      setEmailError('Sunucuya bağlanılamadı.');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] gap-4 overflow-hidden">
+      {/* Yan Panel (Mobilde gizlenir) */}
+      <div className={`${view === 'history' ? 'flex' : 'hidden md:flex'} flex-col w-full md:w-72 lg:w-80 h-full p-4 border-r bg-background overflow-hidden`}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold flex items-center">
+            <Bot className="mr-2 h-5 w-5 text-[#ffc72c]" /> Turkcell Asistan
+          </h2>
+          <Button variant="ghost" size="sm" onClick={startNewChat} className="text-[#ffc72c]">
+            <PlusCircle className="h-4 w-4 mr-1" /> Yeni
+              </Button>
+            </div>
+            
+        <Input
+          placeholder="Konuşmaları ara..."
+          className="mb-4 border-[#005f9e]/20 focus-visible:ring-[#005f9e]"
+          prefix={<Search className="h-4 w-4 text-muted-foreground" />}
+        />
+
+        <ScrollArea className="flex-1 pr-3">
+          <div className="space-y-2">
+            {/* Geçmiş konuşmalar */}
+            {sessions.length > 0 ? (
+              sessions.map((s) => (
+                <Button
+                  key={s.sessionId}
+                  variant="ghost"
+                  className={`w-full justify-start items-start text-left p-3 ${activeSession === s.sessionId ? 'bg-[#e0f0fa] text-[#005f9e]' : ''} hover:bg-[#e0f0fa]/50`}
+                  onClick={() => selectSession(s.sessionId)}
+                >
+                  <div className="flex items-center">
+                    <div className={`p-2 rounded-full ${getBadgeColorForType(s.primaryType)} mr-3`}>
+                      {getIconForInteractionType(s.primaryType)}
+                  </div>
+                    <div className="space-y-1 overflow-hidden">
+                      <div className="font-medium truncate">{s.title}</div>
+                      <div className="text-xs text-muted-foreground flex items-center space-x-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{formatDate(s.lastInteractionTime)}</span>
+                  </div>
+                  </div>
+                  </div>
+                </Button>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <div className="flex justify-center mb-2">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground/50" />
+              </div>
+                <p>Henüz konuşma geçmişiniz yok</p>
+                <p className="text-sm">Asistanla sohbet etmek için yeni bir konuşma başlatın</p>
+            </div>
+            )}
+          </div>
+        </ScrollArea>
+        </div>
+
+      {/* Ana Sohbet Alanı */}
+      <div className={`${view === 'chat' ? 'flex' : 'hidden md:flex'} flex-col flex-1 h-full overflow-hidden bg-background`}>
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden mr-2"
+              onClick={() => setView('history')}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <div className="flex flex-col">
+              <h2 className="font-bold text-lg flex items-center">
+                <Badge 
+                  className="mr-2 bg-[#e0f0fa] text-[#005f9e] hover:bg-[#e0f0fa]"
+                  variant="secondary"
+                >
+                  TEB
+                </Badge>
+                TEB Bankacılık Asistanı
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                TEB bankacılık ürünleri, şube işlemleri ve finansal çözümler hakkında destek alın
+          </p>
+        </div>
+          </div>
+          <div className="flex space-x-1">
+                <Button 
+              variant="ghost"
+                  size="sm"
+              title="Konuşmayı temizle"
+              onClick={startNewChat}
+                >
+              <RefreshCcw className="h-4 w-4" />
+                </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Asistan Ayarları</DropdownMenuLabel>
+                <DropdownMenuItem onClick={showNewFeatures}>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  <span>Yeni Özellikler</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <History className="h-4 w-4 mr-2" />
+                  <span>Tüm Konuşmaları Görüntüle</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+      </div>
+      
+        <Tabs
+          defaultValue={activeTab}
+          onValueChange={setActiveTab}
+          className="flex-1 overflow-hidden"
+        >
+          <TabsList className="px-4 pt-2 border-b bg-background">
+            <TabsTrigger
+              value="chat"
+              className={activeTab === "chat" ? "border-b-2 border-[#005f9e] text-[#005f9e]" : ""}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Sohbet
+            </TabsTrigger>
+            <TabsTrigger
+              value="insights"
+              className={activeTab === "insights" ? "border-b-2 border-[#005f9e] text-[#005f9e]" : ""}
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              İçgörüler
+            </TabsTrigger>
+            <TabsTrigger
+              value="training"
+              className={activeTab === "training" ? "border-b-2 border-[#005f9e] text-[#005f9e]" : ""}
+            >
+              <GraduationCap className="h-4 w-4 mr-2" />
+              Eğitim
+            </TabsTrigger>
+            <TabsTrigger
+              value="analytics"
+              className={activeTab === "analytics" ? "border-b-2 border-[#005f9e] text-[#005f9e]" : ""}
+            >
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        
+        <TabsContent value="chat" className="flex-1 overflow-hidden flex flex-col h-full">
+          <ScrollArea className="flex-1 p-4">
+            <div className="space-y-4 max-w-3xl mx-auto">
+              <Card className="h-full">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <Bot className="h-5 w-5 text-[#ffc72c]" />
+                      <span>Turkcell Asistanı</span>
+                    </CardTitle>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={startNewChat}>
+                        <PlusCircle className="h-5 w-5" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 w-full max-w-lg">
+                    {botSuggestions.map((suggestion) => (
+                      <Button 
+                        key={suggestion.id} 
+                        variant="outline" 
+                        className="justify-start border-[#005f9e]/20 hover:bg-[#e0f0fa]/30 hover:text-[#005f9e]"
+                        onClick={() => {
+                          setMessage(suggestion.text);
+                          document.getElementById('message-input')?.focus();
+                        }}
+                      >
+                        {suggestion.icon}
+                        <span className="ml-2 truncate text-left">{suggestion.text}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </Card>
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-center">
+                    <div className="p-4 rounded-full bg-[#e0f0fa] mb-4">
+                      <Bot className="h-8 w-8 text-[#005f9e]" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">Turkcell Asistanı</h3>
+                    <p className="text-muted-foreground max-w-sm">
+                      Turkcell sistemleri, servis modülleri ve saha operasyonları hakkında sorularınızı yanıtlamak için burudayım.
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((msg) => (
+                    <div 
+                      key={msg.id} 
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} items-start gap-3`}
+                    >
+                      {msg.role === 'assistant' && (
+                        <div className="w-8 h-8 rounded-full bg-[#005f9e] flex items-center justify-center flex-shrink-0">
+                          <Bot className="h-5 w-5 text-white" />
+                        </div>
+                      )}
+                      <div 
+                        className={`rounded-lg p-4 max-w-[80%] ${
+                          msg.role === 'user' 
+                            ? 'bg-[#005f9e] text-white' 
+                            : 'bg-[#e0f0fa] text-[#005f9e]'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-medium">
+                            {msg.role === 'user' ? 'Siz' : 'Turkcell Asistan'}
+                          </span>
+                          <span className="text-xs opacity-70 ml-2">
+                            {formatTime(msg.timestamp)}
+                          </span>
+                        </div>
+                        {msg.isCode ? (
+                          <pre className="p-3 bg-black/10 rounded overflow-x-auto text-sm">
+                            <code>{msg.content}</code>
+                          </pre>
+                        ) : (
+                          formatMessage(msg.content)
+                        )}
+                        {msg.role === 'assistant' && msg.id && (
+                          <div className="flex justify-end gap-2 mt-2">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-7 px-2 hover:bg-white/20"
+                              onClick={() => sendFeedback(msg.id, FeedbackType.HELPFUL)}
+                              disabled={msg.feedback === FeedbackType.HELPFUL}
+                            >
+                              <ThumbsUp className={`h-4 w-4 ${msg.feedback === FeedbackType.HELPFUL ? 'text-green-500 fill-green-500' : ''}`} />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-7 px-2 hover:bg-white/20"
+                              onClick={() => sendFeedback(msg.id, FeedbackType.NOT_HELPFUL)}
+                              disabled={msg.feedback === FeedbackType.NOT_HELPFUL}
+                            >
+                              <ThumbsDown className={`h-4 w-4 ${msg.feedback === FeedbackType.NOT_HELPFUL ? 'text-red-500 fill-red-500' : ''}`} />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      {msg.role === 'user' && (
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          <User className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </ScrollArea>
+
+            <div className="p-4 border-t">
+              <form onSubmit={sendMessage} className="flex items-end gap-2">
+                <div className="flex-1 relative">
+                  <Textarea
+                    id="message-input"
+                    placeholder="Bir soru sorun veya yardım isteyin..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="pr-10 resize-none min-h-[80px] max-h-[240px] border-[#005f9e]/20 focus-visible:ring-[#005f9e]"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage(e);
+                      }
+                    }}
+                  />
+                  <div className="absolute right-3 bottom-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="backdrop-blur-md bg-white/80 border border-gray-200 shadow-lg">
+                        <DropdownMenuLabel>Asistan Modu</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => setInteractionType(SynbotInteractionType.CHAT)}>
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          <span>Bankacılık Danışmanı</span>
+                          {interactionType === SynbotInteractionType.CHAT && <Check className="h-4 w-4 ml-2" />}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setInteractionType(SynbotInteractionType.TRAINING_GUIDANCE)}>
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          <span>TEB Ürün Eğitimi</span>
+                          {interactionType === SynbotInteractionType.TRAINING_GUIDANCE && <Check className="h-4 w-4 ml-2" />}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setInteractionType(SynbotInteractionType.ERROR_CORRECTION)}>
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          <span>Sorun Çözümü</span>
+                          {interactionType === SynbotInteractionType.ERROR_CORRECTION && <Check className="h-4 w-4 ml-2" />}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setInteractionType(SynbotInteractionType.RECOMMENDATION)}>
+                          <Star className="h-4 w-4 mr-2" />
+                          <span>TEB Ürün Önerileri</span>
+                          {interactionType === SynbotInteractionType.RECOMMENDATION && <Check className="h-4 w-4 ml-2" />}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+                <Button 
+                  type="submit" 
+                  disabled={message.trim() === '' || loading}
+                  className="bg-[#005f9e] hover:bg-[#004b7f]"
+                >
+                  {loading ? <LoadingSpinner className="h-5 w-5" /> : <Send className="h-5 w-5" />}
+                </Button>
+              </form>
+              {messages.length > 0 && (
+                <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Badge className={badgeColors[messages[messages.length - 1].type]}>
+                      <span className="ml-1">{interactionLabels[messages[messages.length - 1].type]}</span>
+                    </Badge>
+                  </div>
+                  <p>Turkcell çalışanlarına özel destek</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        
+          <TabsContent value="insights" className="p-4 overflow-auto h-full">
+            <SynbotInsightsCard />
+          </TabsContent>
+
+          <TabsContent value="training" className="p-4 overflow-auto h-full">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Turkcell Sistem Eğitimleri</h3>
+              <p className="text-sm text-muted-foreground">Turkcell sistemleri ve süreçleri hakkında kapsamlı eğitim modülleri</p>
+              <div className="space-y-3">
+                <div className="border rounded-md p-3">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-medium">CRM ve Abone Yönetimi</h4>
+                      <p className="text-xs text-muted-foreground">Müşteri kayıt, numara tahsis ve abonelik işlemleri</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-muted-foreground mb-1">%75 tamamlandı</div>
+                      <Progress value={75} className="h-2 w-24" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs flex justify-between">
+                    <span>Tahmini süre: 45 dakika</span>
+                    <Button variant="link" size="sm" className="h-auto p-0">Devam Et</Button>
+                  </div>
+                </div>
+                
+                <div className="border rounded-md p-3">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-medium">Faturalama ve Kampanya Yönetimi</h4>
+                      <p className="text-xs text-muted-foreground">Fatura oluşturma, kampanya tanımlama ve fiyatlandırma</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-muted-foreground mb-1">%30 tamamlandı</div>
+                      <Progress value={30} className="h-2 w-24" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs flex justify-between">
+                    <span>Tahmini süre: 30 dakika</span>
+                    <Button variant="link" size="sm" className="h-auto p-0">Devam Et</Button>
+                  </div>
+                </div>
+                
+                <div className="border rounded-md p-3">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-medium">Saha Operasyonları ve BTS Kurulumu</h4>
+                      <p className="text-xs text-muted-foreground">Saha ekipleri için BTS kurulum ve arıza tespit adımları</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-muted-foreground mb-1">%10 tamamlandı</div>
+                      <Progress value={10} className="h-2 w-24" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs flex justify-between">
+                    <span>Tahmini süre: 60 dakika</span>
+                    <Button variant="link" size="sm" className="h-auto p-0">Devam Et</Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="p-4 overflow-auto h-full">
+            <div className="space-y-6">
+              <Card className="h-full">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-[#ffc72c]" />
+                    <span>Turkcell Eğitim İstatistikleri</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Turkcell sistemleri, servis modülleri ve saha operasyonları hakkında sorularınızı yanıtlamak için burudayım.
+                </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <h3 className="text-sm font-medium">Genel Eğitim İlerlemeniz</h3>
+                      <span className="text-sm text-muted-foreground">%68</span>
+                    </div>
+                    <Progress value={68} className="h-2" />
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium mb-3">Modül Bazında İlerleme</h3>
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>CRM ve Abone Yönetimi</span>
+                          <span className="text-muted-foreground">%85</span>
+                        </div>
+                        <Progress value={85} className="h-2" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Faturalama ve Kampanya Yönetimi</span>
+                          <span className="text-muted-foreground">%45</span>
+                        </div>
+                        <Progress value={45} className="h-2" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Saha Operasyonları</span>
+                          <span className="text-muted-foreground">%70</span>
+                        </div>
+                        <Progress value={70} className="h-2" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <LineChart className="h-8 w-8 text-[#ffc72c]" />
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">Eğitim İlerleme</p>
+                            <p className="text-2xl font-bold">82%</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <CheckCircle className="h-8 w-8 text-[#ffc72c]" />
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">Tamamlanan Eğitimler</p>
+                            <p className="text-2xl font-bold">24/35</p>
+                          </div>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <CheckCircle className="h-8 w-8 text-[#ffc72c]" />
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Tamamlanan Eğitimler</p>
+                          <p className="text-2xl font-bold">24/35</p>
+                      </div>
+                        </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <PieChart className="h-8 w-8 text-[#ffc72c]" />
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Ekip Karşılaştırması</p>
+                          <p className="text-2xl font-bold">%92</p>
+                      </div>
+                        </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                </CardContent>
+              </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+</div>
+
+      <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
+        <DialogContent className="max-w-lg w-full">
+          <DialogHeader>
+            <DialogTitle>Kurumsal E-posta Üretici</DialogTitle>
+            <p className="text-muted-foreground text-sm mt-1">Turkcell çalışanlarına özel, kurumsal dilde e-posta taslağı oluşturun. Gemini AI ile desteklenir.</p>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="Konu (örn: Müşteri Bilgilendirme)"
+              value={emailSubject}
+              onChange={e => setEmailSubject(e.target.value)}
+              className="border-[#005f9e]/30 focus-visible:ring-[#005f9e]"
+            />
+            <Textarea
+              placeholder="E-posta içeriği için kısa açıklama (örn: Yeni ürün bilgilendirmesi yapılacak)"
+              value={emailContext}
+              onChange={e => setEmailContext(e.target.value)}
+              className="border-[#005f9e]/30 focus-visible:ring-[#005f9e] min-h-[80px]"
+            />
+            <Button onClick={handleGenerateEmail} disabled={emailLoading || !emailSubject || !emailContext} className="w-full bg-[#005f9e] hover:bg-[#004b7f]">
+              {emailLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Mail className="h-4 w-4 mr-2" />} E-posta Oluştur
+            </Button>
+            {emailError && <div className="text-red-600 text-sm mt-2">{emailError}</div>}
+            {generatedEmail && (
+              <div className="bg-muted rounded-md p-3 mt-2 relative">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-semibold text-[#005f9e]">Oluşturulan E-posta</span>
+                  <Button size="icon" variant="ghost" onClick={() => {navigator.clipboard.writeText(generatedEmail)}}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <pre className="whitespace-pre-wrap text-sm text-muted-foreground">{generatedEmail}</pre>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailModalOpen(false)} className="w-full">Kapat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default SynBotPage; 

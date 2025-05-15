@@ -1,26 +1,812 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "./styles/teb-theme.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.625rem;
+  --background: 210 50% 98%;
+  --foreground: 215 35% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 215 25% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 25% 15%;
+  --primary: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+  --primary-foreground: 215 35% 15%;
+  --secondary: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215 25% 40%;
+  --accent: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+  --chart-1: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+  --chart-2: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+  --chart-3: 195 80% 60%;  /* Turkcell Mavi açık tonu */
+  --chart-4: 47 90% 60%;  /* Turkcell Sarı açık tonu */
+  --chart-5: 195 60% 30%;  /* Turkcell Mavi koyu tonu */
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+  --sidebar-primary-foreground: oklch(0.145 0 0);
+  --sidebar-accent: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-heading: var(--font-manrope), var(--font-sans);
+}
+
+.dark {
+  --background: 224 71.4% 5%;
+  --foreground: 210 20% 98%;
+  --card: 224 71.4% 7%;
+  --card-foreground: 210 20% 98%;
+  --popover: 224 71.4% 5%;
+  --popover-foreground: 210 20% 98%;
+  --primary: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+  --primary-foreground: 215 35% 15%;
+  --secondary: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 215 27.9% 16.9%;
+  --muted-foreground: 217.9 10.6% 70%;
+  --accent: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 62.8% 50.6%;
+  --destructive-foreground: 210 20% 98%;
+  --border: 215 27.9% 16.9%;
+  --input: 215 27.9% 16.9%;
+  --ring: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+  --chart-1: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+  --chart-2: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+  --chart-3: 195 80% 60%;  /* Turkcell Mavi açık tonu */
+  --chart-4: 47 90% 60%;  /* Turkcell Sarı açık tonu */
+  --chart-5: 195 60% 30%;  /* Turkcell Mavi koyu tonu */
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-gray-800;
   }
 }
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* TEMA RENK DEĞİŞKENLERİ */
+  :root {
+    --background: 210 50% 98%;
+    --foreground: 215 35% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+    --primary: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+    --primary-foreground: 215 35% 15%;
+    --secondary: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 25% 40%;
+    --accent: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+    --radius: 0.75rem;
+    --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --font-heading: var(--font-manrope), var(--font-sans);
+  }
+
+  .dark {
+    --background: 224 71.4% 5%;
+    --foreground: 210 20% 98%;
+    --card: 224 71.4% 7%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 71.4% 5%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+    --primary-foreground: 215 35% 15%;
+    --secondary: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 70%;
+    --accent: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+  }
+
+  .blue-theme {
+    --background: 210 50% 98%;
+    --foreground: 215 35% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+    --primary: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+    --primary-foreground: 215 35% 15%;
+    --secondary: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 25% 40%;
+    --accent: 195 100% 41%;  /* Turkcell Mavi #00A0D2 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 47 100% 50%;  /* Turkcell Sarı #FFD100 */
+  }
+
+  .dark-blue {
+    --background: 220 47% 5%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 7%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 7%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 100% 65%;
+    --primary-foreground: 222 47% 7%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 75%;
+    --accent: 217 33% 20%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 80% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 224 76% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .font-sans {
+    font-family: var(--font-sans);
+  }
+  
+  .font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.025em;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+    letter-spacing: -0.03em;
+  }
+  
+  h2 {
+    font-size: 1.875rem;
+    letter-spacing: -0.02em;
+  }
+  
+  h3 {
+    font-size: 1.5rem;
+    letter-spacing: -0.01em;
+  }
+  
+  /* Buton metni */
+  button {
+    font-family: var(--font-sans);
+    font-weight: 500;
+  }
+}
+
+@layer components {
+  .glassmorphism {
+    @apply bg-white/20 backdrop-blur-lg border border-white/30 shadow-xl;
+  }
+  
+  .tech-gradient {
+    @apply bg-gradient-to-br from-primary/90 via-primary/70 to-accent/80;
+  }
+
+  .glow-effect {
+    @apply relative;
+  }
+  
+  .glow-effect::before {
+    content: '';
+    @apply absolute -inset-1 rounded-full blur-md bg-primary/40 opacity-0 transition-opacity duration-300;
+  }
+  
+  .glow-effect:hover::before {
+    @apply opacity-100;
+  }
+  
+  .tech-card {
+    @apply rounded-xl overflow-hidden border border-primary/20 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-primary/30 hover:shadow-xl hover:border-primary/50 bg-gradient-to-br from-card to-card/90;
+  }
+  
+  .synbot-bg {
+    background: radial-gradient(circle at top right, var(--accent), transparent 60%),
+                radial-gradient(circle at bottom left, var(--primary), transparent 60%);
+  }
+  
+  .cyber-grid {
+    background-size: 30px 30px;
+    background-image: 
+      linear-gradient(to right, theme('colors.primary.DEFAULT / 10%') 1px, transparent 1px),
+      linear-gradient(to bottom, theme('colors.primary.DEFAULT / 10%') 1px, transparent 1px);
+  }
+  
+  .animated-border {
+    @apply border border-transparent relative;
+  }
+  
+  .animated-border::before {
+    content: '';
+    @apply absolute inset-0 rounded-[calc(var(--radius)-1px)] p-[1px] bg-gradient-to-r from-primary via-accent to-primary bg-[length:200%_100%];
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    animation: border-animation 3s linear infinite;
+  }
+  
+  @keyframes border-animation {
+    from {
+      background-position: 0% 0;
+    }
+    to {
+      background-position: 200% 0;
+    }
+  }
+  
+  .dot-pattern {
+    background-image: radial-gradient(hsl(var(--primary) / 0.07) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  .rotating-squares {
+    @apply relative w-full h-full;
+  }
+  
+  .rotating-squares::before, .rotating-squares::after {
+    content: '';
+    @apply absolute w-40 h-40 rounded-2xl opacity-40 -z-10;
+    animation: rotate 20s linear infinite;
+  }
+  
+  .rotating-squares::before {
+    @apply bg-primary/90;
+    top: 20%;
+    left: 10%;
+    animation-delay: -5s;
+  }
+  
+  .rotating-squares::after {
+    @apply bg-accent/90;
+    bottom: 10%;
+    right: 15%;
+    animation-delay: -10s;
+  }
+  
+  @keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+@layer utilities {
+  /* Fütüristik buton efektleri */
+  .btn-hover-effect {
+    @apply relative overflow-hidden transition-all duration-300;
+  }
+  
+  .btn-hover-effect::before {
+    content: '';
+    @apply absolute inset-0 bg-white opacity-0 transition-opacity duration-300;
+    mix-blend-mode: overlay;
+  }
+  
+  .btn-hover-effect:hover::before {
+    @apply opacity-15;
+  }
+  
+  .btn-hover-effect:active::before {
+    @apply opacity-25;
+  }
+  
+  /* Modern input stillemesi */
+  .input-modern {
+    @apply bg-background/50 border border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-300 backdrop-blur-[2px];
+  }
+  
+  .input-minimal {
+    @apply bg-transparent border-b border-border focus:border-primary/70 focus:ring-0 rounded-none px-0 py-2 transition-all duration-300;
+  }
+  
+  /* Card efektleri */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/30;
+  }
+  
+  .card-glass {
+    @apply bg-card/70 backdrop-blur-md border border-white/10 shadow-lg;
+  }
+  
+  /* Fütüristik çizgiler */
+  .tech-line {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-primary/30 to-transparent;
+  }
+  
+  .tech-line-vertical {
+    @apply w-px h-full bg-gradient-to-b from-transparent via-primary/30 to-transparent;
+  }
+  
+  /* Animasyonlar */
+  .hover-scale {
+    @apply transition-transform duration-300 hover:scale-105;
+  }
+  
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-md hover:shadow-primary/20;
+  }
+  
+  /* Şık tipografi */
+  .tech-title {
+    @apply text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+  
+  .tech-subtitle {
+    @apply text-xl font-semibold text-foreground/80;
+  }
+  
+  /* Form alanlarında odaklanma efekti */
+  .focus-ring-modern {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-0;
+  }
+}
+
+/* Ek animasyonlar */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Modern CSS sınıfları */
+.card-glass {
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(var(--primary) / 0.1), 
+              0 8px 10px -6px rgba(var(--primary) / 0.1);
+}
+
+.tech-title {
+  background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+}
+
+.tech-line {
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    hsl(var(--primary) / 0.3) 20%, 
+    hsl(var(--primary) / 0.8) 50%,
+    hsl(var(--primary) / 0.3) 80%,
+    transparent 100%
+  );
+}
+
+.input-modern {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  border-width: 1px;
+}
+
+.focus-ring-modern:focus-visible {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 
+              0 0 0 4px hsl(var(--primary) / 0.3);
+}
+
+.btn-hover-effect {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.btn-hover-effect::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.2) 50%, 
+    transparent 100%
+  );
+  z-index: -1;
+  transition: left 0.7s ease;
+}
+
+.btn-hover-effect:hover::after {
+  left: 100%;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes fade-in-slow {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  animation: shimmer 3s linear infinite;
+}
+
+.animate-fade-in-slow {
+  animation: fade-in-slow 0.8s ease forwards;
+}
+
+/* Tema renklerini güçlendirme */
+html.blue-theme, html.blue-theme body {
+  background-color: hsl(210 50% 98%);
+  color: hsl(215 40% 15%);
+}
+
+html.dark, html.dark body {
+  background-color: hsl(224 71.4% 5%);
+  color: hsl(210 20% 95%);
+}
+
+html.dark-blue, html.dark-blue body {
+  background-color: hsl(220 40% 8%);
+  color: hsl(210 40% 95%);
+}
+
+html.light, html.light body {
+  background-color: hsl(0 0% 100%);
+  color: hsl(224 71.4% 10%);
+}
+
+/* Primary rengin daha net görünmesi için */
+.text-primary {
+  color: hsl(var(--primary)) !important;
+}
+
+.bg-primary {
+  background-color: hsl(var(--primary)) !important;
+}
+
+.tech-title {
+  background: linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+
+/* Gradient çizgilerin daha net görünmesi için */
+.tech-line {
+  height: 2px !important;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    hsl(var(--primary) / 0.6) 20%, 
+    hsl(var(--primary)) 50%,
+    hsl(var(--primary) / 0.6) 80%,
+    transparent 100%
+  ) !important;
+  border-radius: 9999px !important;
+}
+
+/* Card efekti iyileştirmesi */
+.card-glass {
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 
+    0 10px 15px -3px rgba(0,0,0,0.05),
+    0 4px 6px -2px rgba(0,0,0,0.025),
+    0 0 0 1px rgba(0,0,0,0.05) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.card-glass:hover {
+  box-shadow: 
+    0 20px 25px -5px rgba(0,0,0,0.1),
+    0 10px 10px -5px rgba(0,0,0,0.04),
+    0 0 0 1px rgba(0,0,0,0.1) !important;
+  transform: translateY(-2px);
+}
+
+/* Input geliştirmeleri */
+.input-modern {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+  border-width: 1px !important;
+  border-color: hsl(var(--border) / 0.3) !important;
+  background-color: hsl(var(--background) / 0.5) !important;
+}
+
+.input-modern:focus {
+  border-color: hsl(var(--primary) / 0.3) !important;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15) !important;
+}
+
+/* Form etiketleri */
+label {
+  font-family: var(--font-sans);
+  font-weight: 500 !important;
+  color: hsl(var(--foreground) / 0.8) !important;
+}
+
+/* Buton iyileştirmeleri */
+button[type="submit"], 
+.btn-primary {
+  font-family: var(--font-sans);
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+/* Muted text iyileştirmesi */
+.text-muted-foreground {
+  color: hsl(var(--foreground) / 0.65) !important;
+}
+
+/* Arka plan desenleri için iyileştirmeler */
+.dot-pattern {
+  background-image: radial-gradient(hsl(var(--primary) / 0.07) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+}
+
+/* Tipografi iyileştirmeleri */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Font sınıfları */
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.025em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+/* Heading font weights ve boyutlar */
+h1 {
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 1.25rem;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+/* Modern gradients */
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80 font-bold;
+}
+
+.border-gradient {
+  border-image: linear-gradient(to right, hsl(var(--primary)), transparent) 1;
+}
+
+/* Hover efektleri */
+.hover-lift {
+  @apply transition-transform duration-300 hover:-translate-y-1;
+}
+
+.hover-glow {
+  @apply transition-shadow duration-300 hover:shadow-lg hover:shadow-primary/10;
+}
+
+/* Background desenleri */
+.dot-pattern {
+  background-image: radial-gradient(hsl(var(--primary) / 0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, hsl(var(--primary) / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--primary) / 0.05) 1px, transparent 1px);
+}
+
+/* Dark mode uyumlu scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted rounded-full hover:bg-muted-foreground/30 transition-colors duration-200;
+}
+
+/* Tema renkleri için daha iyi kontrast ve okunabilirlik */
+html.blue-theme, html.blue-theme body {
+  color-scheme: light;
+}
+
+html.dark, html.dark body {
+  color-scheme: dark;
+}
+
+html.dark-blue, html.dark-blue body {
+  color-scheme: dark;
+}
+
+html.light, html.light body {
+  color-scheme: light;
+}
+
+/* Hide scrollbar for Chrome, Safari, and newer Edge */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for Firefox */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE and Edge */
 }
