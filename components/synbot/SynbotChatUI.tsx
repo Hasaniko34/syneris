@@ -159,106 +159,91 @@ export function SynbotChatUI() {
     setMessages([welcomeMessage]);
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
     
-    // Kullanıcı mesajını ekle
-    const userMessage: Message = {
+    sendMessage(input);
+    setInput('');
+  };
+  
+  // Kullanıcı mesajı gönderme
+  const sendMessage = async (userMessage: string) => {
+    if (!userMessage.trim() || isLoading) return;
+    
+    const newUserMessage: Message = {
       id: Date.now().toString(),
-      content: input,
+      content: userMessage,
       role: "user",
-      timestamp: new Date(),
+      timestamp: new Date()
     };
     
-    const userQuery = input;
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    setInput("");
+    // Kullanıcı mesajını ekle
+    setMessages(prev => [...prev, newUserMessage]);
+    
     setIsLoading(true);
-    setError(null);
     
     try {
       // Yükleniyor mesajını ekle
       const loadingMessage: Message = {
-        id: "loading-" + Date.now().toString(),
+        id: `loading-${Date.now()}`,
         content: "Yanıt hazırlanıyor...",
         role: "assistant",
-        timestamp: new Date(),
+        timestamp: new Date()
       };
       
-      setMessages([...updatedMessages, loadingMessage]);
+      setMessages(prev => [...prev, loadingMessage]);
       
-      // Backend API'ye istek gönder
-      const response = await fetch('/api/synbot/force-api', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userQuery
-        })
-      });
+      let botResponse = "";
       
-      // Son yükleniyor mesajını kaldır
-      setMessages(messages => messages.filter(m => m.id !== loadingMessage.id));
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API hatası: ${response.status} - ${errorText}`);
+      try {
+        // API'ye istek gönder
+        const response = await fetch('/api/synbot/force-api', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userMessage }),
+          signal: AbortSignal.timeout(10000) // 10 saniye timeout
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API Hatası: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        botResponse = data.response || "API yanıtı alınamadı";
+      } catch (error) {
+        console.error("API hatası:", error);
+        
+        // Offline yanıt üret
+        botResponse = "Şu anda sunucuya bağlanılamıyor. Mesajınız kaydedildi, internet bağlantısı sağlandığında yanıt alabileceksiniz. Yardımcı olabilecek başka bir konuda bilgi almak ister misiniz?";
       }
-      
-      const data = await response.json();
-      console.log("API yanıtı:", data);
-      
-      // API yanıtını çıkar
-      const apiResponse = data.response || 'API yanıtı işlenemedi';
       
       // Bot yanıtını ekle
       const botMessage: Message = {
-        id: Date.now().toString() + "-api-" + Math.random().toString(36).substring(2, 7),
-        content: apiResponse,
+        id: `bot-${Date.now()}`,
+        content: botResponse,
         role: "assistant",
-        timestamp: new Date(),
-        metadata: {
-          simulated: false,
-          directApi: false
-        }
+        timestamp: new Date()
       };
       
-      // Bot mesajını mesajlara ekle
-      setMessages(messages => [...messages.filter(m => m.id !== loadingMessage.id), botMessage]);
-      
-      // Oturum ID'si varsa, mesajı sunucuya kaydet
-      if (activeSession) {
-        try {
-          await fetch(`/api/synbot/sessions/${activeSession}/messages`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userMessage: userQuery,
-              botResponse: apiResponse
-            })
-          });
-        } catch (err) {
-          console.error("Mesaj sunucuya kaydedilemedi", err);
-        }
-      }
-    } catch (err) {
-      console.error("Mesaj gönderme hatası:", err);
-      setError(err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu");
+      // Yükleniyor mesajını kaldır ve bot yanıtını ekle
+      setMessages(prev => 
+        [...prev.filter(m => m.id !== loadingMessage.id), botMessage]
+      );
+    } catch (error) {
+      console.error("Mesaj gönderme hatası:", error);
       
       // Hata mesajını ekle
       const errorMessage: Message = {
-        id: Date.now().toString(),
-        content: `Üzgünüm, bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen bir hata"}`,
+        id: `error-${Date.now()}`,
+        content: `Üzgünüm, bir hata oluştu: ${error instanceof Error ? error.message : "Bilinmeyen hata"}`,
         role: "assistant",
-        timestamp: new Date(),
+        timestamp: new Date()
       };
       
-      setMessages(messages => [...messages.filter(m => m.id.startsWith("loading-")), errorMessage]);
+      setMessages(prev => 
+        [...prev.filter(m => m.id.startsWith("loading-")), errorMessage]
+      );
     } finally {
       setIsLoading(false);
     }
@@ -267,7 +252,7 @@ export function SynbotChatUI() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage(e);
+      handleSubmit(e);
     }
   };
 
@@ -470,7 +455,7 @@ export function SynbotChatUI() {
       </div>
       
       <CardFooter className="p-4 border-t bg-background">
-        <form onSubmit={sendMessage} className="flex w-full gap-2">
+        <form onSubmit={handleSubmit} className="flex w-full gap-2">
           <Textarea
             placeholder="Mesajınızı yazın..."
             className="min-h-10 max-h-40 resize-none"

@@ -297,34 +297,49 @@ const SynBotPage = () => {
   const loadSessions = async () => {
     try {
       setIsLoading(true);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 saniye zaman aşımı
       
-      const response = await fetch('/api/synbot/sessions', {
-        signal: controller.signal
-      }).catch(error => {
-        console.error("Fetch hatası:", error);
-        return new Response(JSON.stringify({ success: false, error: "Bağlantı hatası" }), { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
+      // Basit fetch işlemi, timeout kontrolü olmadan
+      try {
+        const response = await fetch('/api/synbot/sessions', {
+          // 8 saniye timeout tanımla
+          signal: AbortSignal.timeout(8000)
         });
-      });
-      
-      clearTimeout(timeoutId);
-      
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        setSessions(data.sessions || []);
-      } else {
-        console.error("Oturumlar alınamadı:", data);
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          setSessions(data.sessions || []);
+        } else {
+          console.error("Oturumlar alınamadı:", data);
+          toast({
+            title: "Oturumlar yüklenemedi",
+            description: "Veritabanına bağlanırken sorun oluştu. Sayfayı yenileyin veya daha sonra tekrar deneyin.",
+            variant: "destructive"
+          });
+          // Boş oturumlar listesi ile devam et
+          setSessions([]);
+        }
+      } catch (fetchError) {
+        // Fetch hatası
+        console.error("Fetch hatası:", fetchError);
         toast({
-          title: "Oturumlar yüklenemedi",
-          description: "Veritabanına bağlanırken sorun oluştu. Sayfayı yenileyin veya daha sonra tekrar deneyin.",
+          title: "Bağlantı hatası",
+          description: fetchError instanceof TypeError ? "Sunucu yanıt vermiyor" : "Sunucu yanıt verme zaman aşımına uğradı",
           variant: "destructive"
         });
-        // Boş oturumlar listesi ile devam et
-        setSessions([]);
+        // Örnek veri yükle
+        setSessions([{
+          sessionId: "local-session",
+          title: "Yerel Oturum",
+          lastMessage: "",
+          lastResponse: "",
+          interactionCount: 0,
+          lastInteractionTime: new Date(),
+          startTime: new Date(),
+          status: SynbotSessionStatus.ACTIVE,
+          primaryType: SynbotInteractionType.CHAT,
+          updatedAt: new Date()
+        }]);
       }
     } catch (error) {
       console.error("Oturumlar yüklenirken hata:", error);
@@ -380,7 +395,45 @@ const SynBotPage = () => {
         </SearchParamsWrapper>
       </Suspense>
       
-      {/* ... rest of the component JSX ... */}
+      {/* Ana içerik */}
+      <Tabs defaultValue="chat" className="h-full flex flex-col" onValueChange={setActiveTabId}>
+        <div className="flex items-center justify-between mb-4">
+          <TabsList className="grid grid-cols-4 md:w-[400px]">
+            <TabsTrigger value="chat" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Sohbet</span>
+            </TabsTrigger>
+            <TabsTrigger value="error" className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Hata Analizi</span>
+            </TabsTrigger>
+            <TabsTrigger value="training" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Eğitim</span>
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              <span className="hidden sm:inline">Analiz</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        
+        <TabsContent value="chat" className="flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
+          <SynbotChatUI />
+        </TabsContent>
+        
+        <TabsContent value="error" className="flex-1 overflow-auto">
+          <SynbotAnalyzeErrorCard />
+        </TabsContent>
+        
+        <TabsContent value="training" className="flex-1 overflow-auto">
+          <SynbotTrainingCard />
+        </TabsContent>
+        
+        <TabsContent value="insights" className="flex-1 overflow-auto">
+          <SynbotInsightsCard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
