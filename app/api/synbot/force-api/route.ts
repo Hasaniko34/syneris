@@ -71,24 +71,6 @@ export async function POST(request: NextRequest) {
     Sen bir "Eğitim Asistanı"sın. Google, Gemini veya OpenAI gibi terimler kullanma.
     `;
 
-    try {
-      // Test API response directly in a simpler format
-      return NextResponse.json({
-        success: true,
-        message: "TEST MODE",
-        responseTime: 100,
-        response: `Merhaba, ben SynBot - Turkcell'in eğitim asistanıyım. Şu anda test modundayım. Sorduğunuz soru: "${message}"\n\nSyneris platformu, Turkcell çalışanları için özelleştirilmiş bir eğitim ve adaptasyon platformudur. Eğitim içerikleri, iş süreçleri ve sistemler hakkında sorularınızı yanıtlayabilirim. Nasıl yardımcı olabilirim?`,
-        requestDetails: {
-          messageLength: message.length,
-          sessionId: sessionId || "direct-api",
-          timestamp: new Date().toISOString(),
-          isTestMode: true
-        }
-      });
-    } catch (testError) {
-      console.error("Test mode error:", testError);
-    }
-
     // Prepare request to API
     const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
     const requestBody = {
@@ -116,7 +98,7 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    console.log("Sending request to API");
+    console.log("Sending request to Gemini-2.0-flash API");
     
     // Send request with timeout
     const controller = new AbortController();
