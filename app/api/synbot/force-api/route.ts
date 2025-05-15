@@ -17,19 +17,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         message: "Mesaj boş olamaz",
+        response: "Lütfen bir mesaj girin.",
       }, { status: 400 });
     }
 
-    console.log(`Processing message for session: ${sessionId || 'direct-api'}`);
+    console.log(`Processing message for session: ${sessionId || 'direct-api'}, message: "${message.substring(0, 50)}..."`);
     
     // Get API key from environment variable
     const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("Gemini API anahtarı bulunamadı");
+      console.error("Gemini API anahtarı bulunamadı, demo yanıt dönülüyor");
+      
+      // Return a demo response instead of error when API key is missing (for development)
       return NextResponse.json({
-        success: false,
-        message: "API anahtarı bulunamadı",
-      }, { status: 500 });
+        success: true,
+        message: "DEV MODE - API KEY YOK",
+        responseTime: 100,
+        response: `Bu bir test yanıtıdır. Gerçek API anahtarı olmadığı için Gemini API'ye istek atılamadı.\n\nSorduğunuz soru: "${message}"`,
+        requestDetails: {
+          messageLength: message.length,
+          sessionId: sessionId || "direct-api",
+          timestamp: new Date().toISOString(),
+          isDemoResponse: true
+        }
+      });
     }
 
     // Prepare request to Gemini API
@@ -54,7 +65,11 @@ export async function POST(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
     
     try {
-      const response = await fetch(`${geminiUrl}?key=${apiKey}`, {
+      // Construct the full URL with the API key
+      const fullUrl = `${geminiUrl}?key=${apiKey}`;
+      console.log(`API URL (without key): ${geminiUrl}`);
+      
+      const response = await fetch(fullUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -73,22 +88,34 @@ export async function POST(request: NextRequest) {
           success: false,
           message: `Gemini API hatası: ${response.status}`,
           error: errorText,
+          response: `Gemini API'den yanıt alınamadı (${response.status}). Lütfen daha sonra tekrar deneyin.`,
         }, { status: 500 });
       }
   
       // Parse response
-      const data = await response.json();
-      console.log("Gemini API response received:", JSON.stringify(data).substring(0, 150) + "...");
+      const responseText = await response.text();
+      console.log("Raw response:", responseText.substring(0, 150) + "...");
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log("Gemini API response received:", JSON.stringify(data).substring(0, 150) + "...");
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        return NextResponse.json({
+          success: false,
+          message: "API yanıtı JSON olarak ayrıştırılamadı",
+          error: String(parseError),
+          response: "API yanıtını işlerken teknik bir sorun oluştu. Lütfen daha sonra tekrar deneyin.",
+        }, { status: 500 });
+      }
   
       // Extract the AI response text
       let aiResponse = "";
       if (
-        data.candidates &&
-        data.candidates[0] &&
-        data.candidates[0].content &&
-        data.candidates[0].content.parts &&
-        data.candidates[0].content.parts[0] &&
-        data.candidates[0].content.parts[0].text
+        data?.candidates &&
+        data.candidates[0]?.content?.parts &&
+        data.candidates[0].content.parts[0]?.text
       ) {
         aiResponse = data.candidates[0].content.parts[0].text;
       } else {
@@ -97,6 +124,7 @@ export async function POST(request: NextRequest) {
           success: false,
           message: "API yanıtı beklenmeyen bir formatta",
           debug: data,
+          response: "API'den beklenmeyen formatta yanıt alındı. Lütfen daha sonra tekrar deneyin.",
         }, { status: 500 });
       }
   
@@ -126,12 +154,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: false,
           message: "Gemini API timeout - yanıt çok uzun sürdü",
+          response: "Yanıt almak çok uzun sürdü. Lütfen daha sonra tekrar deneyin veya daha kısa bir mesaj girin.",
         }, { status: 504 });
       }
       
       return NextResponse.json({
         success: false,
         message: `Gemini API bağlantı hatası: ${fetchError.message}`,
+        response: "API'ye bağlanırken bir sorun oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
       }, { status: 500 });
     }
   } catch (error: any) {
@@ -140,6 +170,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: false,
       message: `İşlem hatası: ${error.message}`,
+      response: "Bir sistem hatası oluştu. Lütfen daha sonra tekrar deneyin.",
     }, { status: 500 });
   }
 } 

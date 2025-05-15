@@ -164,6 +164,7 @@ export function SynbotChatUI() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
     
+    setIsLoading(true);
     sendMessage(input);
     setInput('');
   };
@@ -183,63 +184,98 @@ export function SynbotChatUI() {
       
       setMessages((prev) => [...prev, userMsg]);
       
-      // Attempt to send to API
-      const response = await fetch("/api/synbot/force-api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: userMessage,
-          sessionId: activeSession || "direct-api"
-        }),
-      });
+      // Attempt to send to API with fetch timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
-      let botResponse = "";
-      
-      if (!response.ok) {
-        console.error("API error:", response.status, response.statusText);
-        botResponse = "Sunucu yanıt vermedi. Lütfen daha sonra tekrar deneyin.";
-      } else {
-        try {
-          const data = await response.json();
-          console.log("API response received:", data);
-          
-          if (data && data.response) {
-            botResponse = data.response;
-          } else {
-            console.error("Invalid API response format:", data);
-            botResponse = "API yanıtı beklenmeyen bir formatta. Teknik ekibe bildirin.";
+      try {
+        // Attempt to send to API
+        const response = await fetch("/api/synbot/force-api", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: userMessage,
+            sessionId: activeSession || "direct-api"
+          }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        let botResponse = "";
+        
+        if (!response.ok) {
+          console.error("API error:", response.status, response.statusText);
+          botResponse = "Sunucu yanıt vermedi. Lütfen daha sonra tekrar deneyin.";
+        } else {
+          try {
+            const responseText = await response.text();
+            console.log("Raw API response:", responseText.substring(0, 100) + "...");
+            
+            let data;
+            try {
+              data = JSON.parse(responseText);
+            } catch (jsonError) {
+              console.error("JSON parse error:", jsonError);
+              throw new Error("API yanıtı geçerli bir JSON formatında değil");
+            }
+            
+            console.log("API response received:", data);
+            
+            if (data && data.response) {
+              botResponse = data.response;
+            } else {
+              console.error("Invalid API response format:", data);
+              botResponse = "API yanıtı beklenmeyen bir formatta. Teknik ekibe bildirin.";
+            }
+          } catch (parseError) {
+            console.error("Error parsing API response:", parseError);
+            botResponse = "API yanıtı işlenemedi. Teknik ekibe bildirin.";
           }
-        } catch (parseError) {
-          console.error("Error parsing API response:", parseError);
-          botResponse = "API yanıtı işlenemedi. Teknik ekibe bildirin.";
         }
-      }
 
-      // Add bot message
-      const botMsg: Message = {
-        id: uuidv4(),
-        role: "assistant",
-        content: botResponse,
-        timestamp: new Date(),
-      };
-      
-      setMessages((prev) => [...prev, botMsg]);
-      
-      // Save messages to session if we have an active session
-      if (activeSession) {
-        try {
-          await fetch("/api/synbot/sessions/messages", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              sessionId: activeSession,
-              userMessage: userMsg,
-              botMessage: botMsg
-            }),
-          });
-        } catch (error) {
-          console.error("Failed to save messages to session:", error);
+        // Add bot message
+        const botMsg: Message = {
+          id: uuidv4(),
+          role: "assistant",
+          content: botResponse,
+          timestamp: new Date(),
+        };
+        
+        setMessages((prev) => [...prev, botMsg]);
+        
+        // Save messages to session if we have an active session
+        if (activeSession) {
+          try {
+            await fetch("/api/synbot/sessions/messages", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                sessionId: activeSession,
+                userMessage: userMsg,
+                botMessage: botMsg
+              }),
+            });
+          } catch (error) {
+            console.error("Failed to save messages to session:", error);
+          }
         }
+      } catch (fetchError: any) {
+        console.error("Fetch error:", fetchError.name, fetchError.message);
+        
+        // Handle timeout or network errors
+        const errorContent = fetchError.name === "AbortError" 
+          ? "İstek zaman aşımına uğradı. Sunucu yanıt vermiyor olabilir."
+          : "Bir ağ hatası oluştu. İnternet bağlantınızı kontrol edin.";
+        
+        const errorMsg: Message = {
+          id: uuidv4(),
+          role: "assistant",
+          content: errorContent,
+          timestamp: new Date(),
+        };
+        
+        setMessages((prev) => [...prev, errorMsg]);
       }
     } catch (error) {
       console.error("Error in sendMessage:", error);
