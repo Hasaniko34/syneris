@@ -21,10 +21,22 @@ export async function POST(req: NextRequest) {
     
     const userMessage = body.message;
     
-    // API anahtarı
-    const apiKey = 'AIzaSyDfJ4ZDvYDsC4Cq8lksklgFJDIzpwKgyxk';
-    console.log('🔍 DOĞRUDAN GEMINI API ÇAĞRISI YAPILIYOR');
-    console.log('Mesaj:', userMessage);
+    // API anahtarı .env'den alınıyor
+    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      console.error('API anahtarı bulunamadı. .env dosyasında GOOGLE_GEMINI_API_KEY tanımladığınızdan emin olun.');
+      return standardApiResponse({
+        success: false,
+        error: 'API anahtarı eksik'
+      }, {
+        success: false,
+        status: 500,
+        message: 'Sunucu konfigürasyonu tamamlanmamış'
+      });
+    }
+    
+    console.log('🔍 GEMINI API ÇAĞRISI YAPILIYOR');
     
     // Sistem talimatı
     const systemMessage = 'Sen Syneris platformunun yapay zeka asistanı olan SynBot\'sun. Turkcell çalışanlarına yardımcı olmak için varsın.';
@@ -48,8 +60,6 @@ export async function POST(req: NextRequest) {
         maxOutputTokens: 2048
       }
     };
-    
-    console.log('API URL:', 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent');
     
     // İstek zamanlaması
     const startTime = Date.now();
@@ -111,7 +121,7 @@ export async function POST(req: NextRequest) {
       
       return standardApiResponse({
         success: true,
-        message: "BAŞARILI - BU BİR TEST SONUCUDUR",
+        message: "BAŞARILI",
         responseTime,
         response: aiResponse,
         requestDetails: {

@@ -47,11 +47,11 @@ export function SynbotChatUI() {
     if (messages.length === 0) {
       const welcomeMessage: Message = {
         id: "welcome-" + Date.now(),
-        content: "Merhaba! Ben SynBot. Doğrudan Gemini API'yi kullanıyorum. Size nasıl yardımcı olabilirim?",
+        content: "Merhaba! Ben SynBot. Size nasıl yardımcı olabilirim?",
         role: "assistant",
         timestamp: new Date(),
         metadata: {
-          directApi: true,
+          directApi: false,
           simulated: false
         }
       };
@@ -148,11 +148,11 @@ export function SynbotChatUI() {
     setMessages([]);
     const welcomeMessage: Message = {
       id: "welcome",
-      content: "Merhaba! Ben SynBot. Doğrudan Gemini API'yi kullanıyorum. Size nasıl yardımcı olabilirim?",
+      content: "Merhaba! Ben SynBot. Size nasıl yardımcı olabilirim?",
       role: "assistant",
       timestamp: new Date(),
       metadata: {
-        directApi: true,
+        directApi: false,
         simulated: false
       }
     };
@@ -189,91 +189,76 @@ export function SynbotChatUI() {
       
       setMessages([...updatedMessages, loadingMessage]);
       
-      // DOĞRUDANGemini API'ye istek
-      const API_KEY = 'AIzaSyDfJ4ZDvYDsC4Cq8lksklgFJDIzpwKgyxk';
-      console.log("Doğrudan Gemini API isteği gönderiliyor...");
-      
-      const response = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': API_KEY
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: 'model',
-                parts: [{ text: 'Sen Turkcell\'in yapay zeka asistanısın. Soruları detaylı ve kapsamlı şekilde yanıtla. "Bu sorunun çözümü için Turkcell teknik destek birimini aramanızı öneririm" veya benzeri statik yanıtlardan kaçın. Her soruya bilgi zenginliği ile cevap ver.' }]
-              },
-              {
-                role: 'user',
-                parts: [{ text: userQuery }]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.8,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 1024
-            }
-          })
-        }
-      );
+      // Backend API'ye istek gönder
+      const response = await fetch('/api/synbot/force-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userQuery
+        })
+      });
       
       // Son yükleniyor mesajını kaldır
       setMessages(messages => messages.filter(m => m.id !== loadingMessage.id));
       
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Gemini API hatası: ${response.status} - ${errorText}`);
+        throw new Error(`API hatası: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
-      console.log("Gemini API yanıtı:", data);
+      console.log("API yanıtı:", data);
       
-      // Gemini yanıtını çıkar
-      const geminiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'API yanıtı işlenemedi';
+      // API yanıtını çıkar
+      const apiResponse = data.response || 'API yanıtı işlenemedi';
       
       // Bot yanıtını ekle
       const botMessage: Message = {
-        id: Date.now().toString() + "-direct-" + Math.random().toString(36).substring(2, 7),
-        content: geminiResponse,
+        id: Date.now().toString() + "-api-" + Math.random().toString(36).substring(2, 7),
+        content: apiResponse,
         role: "assistant",
         timestamp: new Date(),
         metadata: {
           simulated: false,
-          directApi: true
+          directApi: false
         }
       };
       
-      setMessages([...updatedMessages, botMessage]);
+      // Bot mesajını mesajlara ekle
+      setMessages(messages => [...messages.filter(m => m.id !== loadingMessage.id), botMessage]);
       
-      console.log("API isteği tamamlandı, yanıt:", geminiResponse.substring(0, 50) + "...");
+      // Oturum ID'si varsa, mesajı sunucuya kaydet
+      if (activeSession) {
+        try {
+          await fetch(`/api/synbot/sessions/${activeSession}/messages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userMessage: userQuery,
+              botResponse: apiResponse
+            })
+          });
+        } catch (err) {
+          console.error("Mesaj sunucuya kaydedilemedi", err);
+        }
+      }
+    } catch (err) {
+      console.error("Mesaj gönderme hatası:", err);
+      setError(err instanceof Error ? err.message : "Bilinmeyen bir hata oluştu");
       
-    } catch (error: any) {
-      console.error("Gemini API hatası:", error);
-      
-      // Hata mesajı
+      // Hata mesajını ekle
       const errorMessage: Message = {
-        id: "error-" + Date.now().toString(),
-        content: "Üzgünüm, bir hata oluştu: " + (error instanceof Error ? error.message : String(error)),
+        id: Date.now().toString(),
+        content: `Üzgünüm, bir hata oluştu: ${err instanceof Error ? err.message : "Bilinmeyen bir hata"}`,
         role: "assistant",
         timestamp: new Date(),
-        metadata: {
-          simulated: false,
-          directApi: true
-        }
       };
       
-      setMessages([...updatedMessages, errorMessage]);
-      
-      toast({
-        title: "API Hatası",
-        description: "Gemini API ile iletişim kurarken bir sorun oluştu: " + (error instanceof Error ? error.message : String(error)),
-        variant: "destructive",
-      });
+      setMessages(messages => [...messages.filter(m => m.id.startsWith("loading-")), errorMessage]);
     } finally {
       setIsLoading(false);
     }
