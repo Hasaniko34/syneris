@@ -48,8 +48,7 @@ import {
   Star,
   RefreshCw,
   ThumbsDown,
-  Copy,
-  Mail
+  Copy
 } from "lucide-react";
 import { Progress } from '@/components/ui/progress';
 import Image from 'next/image';
@@ -69,7 +68,6 @@ import { SynbotTrainingCard } from "@/components/synbot/SynbotTrainingCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
 
 // SearchParams için wrapper component
 function SearchParamsWrapper({ children }: { children: (props: { sessionId: string | null }) => React.ReactNode }) {
@@ -268,7 +266,7 @@ interface Session {
   updatedAt: Date;
 }
 
-export default function SynbotPage() {
+const SynBotPage = () => {
   const router = useRouter();
   const { data: session } = useSession();
   // Remove the direct call
@@ -382,47 +380,62 @@ export default function SynbotPage() {
   }, [sessionIdFromParam]);
 
   return (
-    <div className="container mx-auto py-4 space-y-4">
-      <div className="grid grid-cols-1 gap-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-semibold">Turkcell Akademi Asistanı</h1>
-          <Link href="/dashboard/synbot/email-templates">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              <span>Kurumsal E-mail Şablonları</span>
-            </Button>
-          </Link>
+    <div className="container mx-auto h-[calc(100vh-6rem)] p-4 relative overflow-hidden">
+      {/* Add the Suspense boundary and SearchParamsWrapper */}
+      <Suspense fallback={<div className="w-10 h-10 border-t-2 border-primary rounded-full animate-spin"></div>}>
+        <SearchParamsWrapper>
+          {({ sessionId }) => {
+            // Set the sessionId from URL parameter to state
+            if (sessionId !== sessionIdFromParam) {
+              setSessionIdFromParam(sessionId);
+            }
+            
+            return null;
+          }}
+        </SearchParamsWrapper>
+      </Suspense>
+      
+      {/* Ana içerik */}
+      <Tabs defaultValue="chat" className="h-full flex flex-col" onValueChange={setActiveTabId}>
+        <div className="flex items-center justify-between mb-4">
+          <TabsList className="grid grid-cols-4 md:w-[400px]">
+            <TabsTrigger value="chat" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Sohbet</span>
+            </TabsTrigger>
+            <TabsTrigger value="error" className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Hata Analizi</span>
+            </TabsTrigger>
+            <TabsTrigger value="training" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Eğitim</span>
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              <span className="hidden sm:inline">Analiz</span>
+            </TabsTrigger>
+          </TabsList>
         </div>
         
-        <Tabs defaultValue="chat" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 mb-4">
-            <TabsTrigger value="chat">SynBot Chat</TabsTrigger>
-          </TabsList>
-          <TabsContent value="chat" className="h-[calc(100vh-200px)]">
-            <Suspense fallback={<ChatSkeleton />}>
-              <SynbotChatUI />
-            </Suspense>
-          </TabsContent>
-        </Tabs>
-      </div>
+        <TabsContent value="chat" className="flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
+          <SynbotChatUI />
+        </TabsContent>
+        
+        <TabsContent value="error" className="flex-1 overflow-auto">
+          <SynbotAnalyzeErrorCard />
+        </TabsContent>
+        
+        <TabsContent value="training" className="flex-1 overflow-auto">
+          <SynbotTrainingCard />
+        </TabsContent>
+        
+        <TabsContent value="insights" className="flex-1 overflow-auto">
+          <SynbotInsightsCard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
 
-function ChatSkeleton() {
-  return (
-    <Card className="w-full h-full flex flex-col">
-      <CardHeader className="p-4 flex-shrink-0">
-        <CardTitle>Yükleniyor...</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 p-4">
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-3/4 rounded-lg" />
-          <Skeleton className="h-12 w-4/5 rounded-lg" />
-          <Skeleton className="h-12 w-2/3 rounded-lg" />
-          <Skeleton className="h-12 w-3/4 rounded-lg" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-} 
+export default SynBotPage; 
