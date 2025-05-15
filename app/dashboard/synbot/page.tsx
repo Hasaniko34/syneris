@@ -68,6 +68,7 @@ import { SynbotTrainingCard } from "@/components/synbot/SynbotTrainingCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Metadata } from "next";
 
 // SearchParams için wrapper component
 function SearchParamsWrapper({ children }: { children: (props: { sessionId: string | null }) => React.ReactNode }) {
@@ -266,7 +267,7 @@ interface Session {
   updatedAt: Date;
 }
 
-const SynBotPage = () => {
+export default function SynbotPage() {
   const router = useRouter();
   const { data: session } = useSession();
   // Remove the direct call
@@ -380,62 +381,29 @@ const SynBotPage = () => {
   }, [sessionIdFromParam]);
 
   return (
-    <div className="container mx-auto h-[calc(100vh-6rem)] p-4 relative overflow-hidden">
-      {/* Add the Suspense boundary and SearchParamsWrapper */}
-      <Suspense fallback={<div className="w-10 h-10 border-t-2 border-primary rounded-full animate-spin"></div>}>
-        <SearchParamsWrapper>
-          {({ sessionId }) => {
-            // Set the sessionId from URL parameter to state
-            if (sessionId !== sessionIdFromParam) {
-              setSessionIdFromParam(sessionId);
-            }
-            
-            return null;
-          }}
-        </SearchParamsWrapper>
-      </Suspense>
-      
-      {/* Ana içerik */}
-      <Tabs defaultValue="chat" className="h-full flex flex-col" onValueChange={setActiveTabId}>
-        <div className="flex items-center justify-between mb-4">
-          <TabsList className="grid grid-cols-4 md:w-[400px]">
-            <TabsTrigger value="chat" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Sohbet</span>
-            </TabsTrigger>
-            <TabsTrigger value="error" className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Hata Analizi</span>
-            </TabsTrigger>
-            <TabsTrigger value="training" className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Eğitim</span>
-            </TabsTrigger>
-            <TabsTrigger value="insights" className="flex items-center gap-2">
-              <Lightbulb className="h-4 w-4" />
-              <span className="hidden sm:inline">Analiz</span>
-            </TabsTrigger>
-          </TabsList>
+    <div className="container mx-auto py-5 h-[calc(100vh-4rem)]">
+      <div className="grid grid-cols-1 gap-4 h-full"> 
+        <div className="col-span-1 h-full">
+          <div className="bg-card rounded-lg shadow overflow-hidden h-full">
+            <div className="flex flex-col h-full">
+              <div className="p-4 border-b">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <span className="bg-primary/10 text-primary p-1 rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bot"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                  </span>
+                  SynBot - Turkcell Eğitim Asistanı
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Eğitim içerikleri, sistem rehberleri ve iş süreçleri hakkında bilgi almak için SynBot'a sorun.
+                </p>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <SynbotChatUI />
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <TabsContent value="chat" className="flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
-          <SynbotChatUI />
-        </TabsContent>
-        
-        <TabsContent value="error" className="flex-1 overflow-auto">
-          <SynbotAnalyzeErrorCard />
-        </TabsContent>
-        
-        <TabsContent value="training" className="flex-1 overflow-auto">
-          <SynbotTrainingCard />
-        </TabsContent>
-        
-        <TabsContent value="insights" className="flex-1 overflow-auto">
-          <SynbotInsightsCard />
-        </TabsContent>
-      </Tabs>
+      </div>
     </div>
   );
-};
-
-export default SynBotPage; 
+} 
