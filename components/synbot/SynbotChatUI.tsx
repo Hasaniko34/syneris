@@ -321,7 +321,7 @@ export function SynbotChatUI() {
             {activeSession ? (
               sessions.find(s => s.id === activeSession)?.title || "SynBot"
             ) : (
-              "Yeni Sohbet (Doğrudan Gemini API)"
+              "Yeni Turkcell Eğitim Asistanı Sohbeti"
             )}
           </CardTitle>
           <Button 
@@ -365,7 +365,7 @@ export function SynbotChatUI() {
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-700 text-xs">
-                Bu sürüm doğrudan Gemini API'ye bağlanır ve statik yanıtları atlar.
+                Turkcell Akademi eğitim içerikleri ve sistemleri hakkında sorularınızı yanıtlar.
               </AlertDescription>
             </div>
           </Alert>
@@ -490,7 +490,7 @@ export function SynbotChatUI() {
                 </Avatar>
                 <div className="bg-muted rounded-lg px-4 py-2 max-w-[80%] flex items-center gap-2">
                   <RefreshCcw className="h-4 w-4 animate-spin text-muted-foreground/80" />
-                  <span className="text-sm text-muted-foreground">Gemini API yanıt oluşturuyor...</span>
+                  <span className="text-sm text-muted-foreground">Turkcell asistanı yanıt hazırlıyor...</span>
                 </div>
               </div>
             )}
