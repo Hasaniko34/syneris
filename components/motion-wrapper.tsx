@@ -1,7 +1,7 @@
 'use client';
 
 import { 
-  motion,
+  motion as motionImport,
   AnimatePresence as AP,
   useAnimate as useAnimateHook,
   useAnimation as useAnimationHook,
@@ -20,7 +20,7 @@ import {
 export const AnimatePresence = AP;
 
 // Re-export motion directly
-export { motion };
+export const motion = motionImport;
 
 // Re-export animation hooks
 export const useAnimate = useAnimateHook;
