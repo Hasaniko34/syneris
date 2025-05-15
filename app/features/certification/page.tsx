@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import { Button } from "@/components/ui/button";
 import { Award, Gift, GraduationCap, TrendingUp, ArrowLeft, ChevronRight, CheckCircle2, Stars } from "lucide-react";
 

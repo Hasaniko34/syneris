@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
@@ -20,6 +20,14 @@ import {
   Search, BookOpen, Clock, Filter, X, Tag, Star, Calendar, Award, Bookmark 
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+
+// SearchParams için wrapper component
+function SearchParamsWrapper({ children }) {
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q');
+  
+  return children({ query });
+}
 
 // Örnek eğitim verileri
 const SAMPLE_TRAININGS = Array(20).fill(null).map((_, index) => ({
@@ -87,10 +95,11 @@ const getCategoryBadgeClass = (category: string) => {
 
 const SearchTrainingsPage = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  // Remove the direct call
+  // const searchParams = useSearchParams();
   
   // Arama ve filtreleme durumları
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -245,6 +254,22 @@ const SearchTrainingsPage = () => {
 
   return (
     <div className="container mx-auto py-6">
+      {/* Add Suspense boundary for SearchParams */}
+      <Suspense fallback={<div className="w-10 h-10 border-t-2 border-primary rounded-full animate-spin"></div>}>
+        <SearchParamsWrapper>
+          {({ query }) => {
+            // Update searchQuery from URL if it changes
+            useEffect(() => {
+              if (query) {
+                setSearchQuery(query);
+              }
+            }, [query]);
+            
+            return null;
+          }}
+        </SearchParamsWrapper>
+      </Suspense>
+      
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold text-[#005f9e]">TEB Eğitim Kataloğu</h1>

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import Link from "next/link";
 
 const TrainingGuidePage = () => {
@@ -79,12 +79,8 @@ const TrainingGuidePage = () => {
           {/* Ana İçerik */}
           <div className="lg:col-span-3">
             {/* Başlangıç Rehberi */}
-            <motion.section 
+            <section 
               id="baslangic"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
               className="bg-white rounded-xl shadow-md p-8 mb-8"
             >
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Başlangıç Rehberi</h2>
@@ -111,15 +107,11 @@ const TrainingGuidePage = () => {
                   </p>
                 </div>
               </div>
-            </motion.section>
+            </section>
 
             {/* Arayüz Tanıtımı */}
-            <motion.section 
+            <section 
               id="arayuz"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
               className="bg-white rounded-xl shadow-md p-8 mb-8"
             >
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Arayüz Tanıtımı</h2>
@@ -147,15 +139,11 @@ const TrainingGuidePage = () => {
                   </p>
                 </div>
               </div>
-            </motion.section>
+            </section>
 
             {/* Modüller */}
-            <motion.section 
+            <section 
               id="moduller"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
               className="bg-white rounded-xl shadow-md p-8 mb-8"
             >
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Modüller</h2>
@@ -182,15 +170,11 @@ const TrainingGuidePage = () => {
                   </p>
                 </div>
               </div>
-            </motion.section>
+            </section>
 
             {/* Temel İşlemler */}
-            <motion.section 
+            <section 
               id="temel-islemler"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
               className="bg-white rounded-xl shadow-md p-8 mb-8"
             >
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Temel İşlemler</h2>
@@ -225,15 +209,11 @@ const TrainingGuidePage = () => {
                   </p>
                 </div>
               </div>
-            </motion.section>
+            </section>
 
             {/* İleri Düzey Özellikler */}
-            <motion.section 
+            <section 
               id="ileri-duzey"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
               className="bg-white rounded-xl shadow-md p-8 mb-8"
             >
               <h2 className="text-2xl font-bold text-gray-800 mb-6">İleri Düzey Özellikler</h2>
@@ -249,71 +229,76 @@ const TrainingGuidePage = () => {
                 <div>
                   <h3 className="text-xl font-semibold text-gray-700 mb-2">Synbot Asistan</h3>
                   <p className="text-gray-600">
-                    Yapay zeka destekli Synbot, platformla ilgili sorularınızı yanıtlar, eğitim içerikleri hakkında bilgi verir ve öğrenme sürecinizde size yardımcı olur. Synbot'a sağ alt köşedeki ikon üzerinden erişebilirsiniz.
+                    Synbot, yapay zeka destekli yardım asistanıdır. Eğitim içerikleri hakkında sorular sorabilir, teknik destek alabilir ve öğrenme sürecinde rehberlik talep edebilirsiniz. Synbot'a erişmek için sağ alt köşedeki chat simgesine tıklayın.
                   </p>
                 </div>
                 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Uygulama Entegrasyonları</h3>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Öneri Sistemi</h3>
                   <p className="text-gray-600">
-                    Syneris, takvim uygulamaları, dosya paylaşım servisleri ve diğer kurumsal araçlarla entegre çalışabilir. Entegrasyonları "Ayarlar > Entegrasyonlar" bölümünden yönetebilirsiniz.
+                    Syneris'in gelişmiş öneri sistemi, öğrenme davranışlarınızı ve kariyer hedeflerinizi analiz ederek size en uygun eğitimleri önerir. Önerilen kurslar ana sayfada ve "Önerilen" sekmesinde görüntülenir.
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Performans Analitiği</h3>
+                  <p className="text-gray-600">
+                    Detaylı istatistikler ve grafiklerle öğrenme performansınızı takip edebilirsiniz. Hangi alanlarda güçlü olduğunuzu ve hangi konularda daha fazla çalışmanız gerektiğini görsel olarak analiz edebilirsiniz.
                   </p>
                 </div>
               </div>
-            </motion.section>
+            </section>
 
             {/* Eğitim Videoları */}
-            <motion.section 
+            <section 
               id="videolar"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
               className="bg-white rounded-xl shadow-md p-8 mb-8"
             >
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Eğitim Videoları</h2>
               
+              <p className="text-gray-600 mb-8">
+                Platformun kullanımı hakkında adım adım görsel rehberler için aşağıdaki eğitim videolarını izleyebilirsiniz.
+              </p>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                   {
-                    title: "Syneris'e Giriş",
-                    duration: "5:32",
-                    thumbnail: "introduction.jpg"
-                  },
-                  {
-                    title: "Eğitim Modüllerinin Kullanımı",
-                    duration: "8:47",
-                    thumbnail: "modules.jpg"
-                  },
-                  {
-                    title: "Analitik Raporları",
-                    duration: "6:15",
-                    thumbnail: "analytics.jpg"
-                  },
-                  {
-                    title: "Synbot'u Etkin Kullanma",
+                    title: "Giriş ve Profil Ayarları",
                     duration: "4:23",
-                    thumbnail: "synbot.jpg"
+                    description: "Sisteme giriş yapma ve profil bilgilerini güncelleme"
+                  },
+                  {
+                    title: "Eğitim Kataloğu Kullanımı",
+                    duration: "5:46",
+                    description: "Eğitim kataloğunu tarama ve kurslara kayıt olma"
+                  },
+                  {
+                    title: "Öğrenme Yolları",
+                    duration: "6:12",
+                    description: "Kariyer hedeflerinize uygun öğrenme yollarını yapılandırma"
+                  },
+                  {
+                    title: "Synbot ile Etkileşim",
+                    duration: "3:58",
+                    description: "Yapay zeka destekli asistanı etkin kullanma ipuçları"
                   }
                 ].map((video, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
-                    <div className="aspect-video bg-gray-200 relative">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-16 h-16 bg-teb-blue bg-opacity-80 rounded-full flex items-center justify-center cursor-pointer">
-                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      </div>
+                  <div key={index} className="bg-gray-50 rounded-lg p-5 flex flex-col border border-gray-200 hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="text-lg font-semibold text-gray-800">{video.title}</h3>
+                      <span className="bg-teb-blue text-white text-xs px-2 py-1 rounded-full">{video.duration}</span>
                     </div>
-                    <div className="p-4">
-                      <h3 className="text-lg font-medium text-gray-800">{video.title}</h3>
-                      <p className="text-gray-500 text-sm">{video.duration}</p>
-                    </div>
+                    <p className="text-gray-600 text-sm mb-4">{video.description}</p>
+                    <a href="#" className="mt-auto text-teb-blue hover:text-teb-blue-dark font-medium flex items-center">
+                      <span>İzle</span>
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </a>
                   </div>
                 ))}
               </div>
-            </motion.section>
+            </section>
           </div>
         </div>
       </div>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, BookOpen, Clock, Users, BarChart, ExternalLink, ChevronRight, Shield, Zap, Gift, Sparkles } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 
 // Animasyon varyantları
 const fadeIn = {

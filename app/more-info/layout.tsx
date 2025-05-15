@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 
 export default function MoreInfoLayout({
   children,

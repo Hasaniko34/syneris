@@ -3,7 +3,7 @@
 import React from "react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Icons } from "@/components/icons";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import { Zap, Cpu } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 

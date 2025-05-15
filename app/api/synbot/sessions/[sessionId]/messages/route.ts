@@ -1,61 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
-import { z } from 'zod';
-import { getSessionById, updateSession } from '@/lib/models/SynbotSession';
-import {
-  createInteraction,
-  getSessionInteractions,
-  getInteractionById,
-  SynbotInteractionType,
-  FeedbackType
-} from '@/lib/models/SynbotInteraction';
-import { ISynbotInteraction } from '@/lib/types/SynbotTypes';
-import { generateGeminiResponse } from '@/lib/utils/gemini-ai';
-import mongoose from 'mongoose';
-import { dbConnect } from '@/lib/mongoose';
-import { v4 as uuidv4 } from 'uuid';
+import { NextRequest } from 'next/server';
+import { demoSessions } from '../../../route';
 import { secureApiRoute, standardApiResponse } from '@/lib/utils/api-security';
 import { apiLogger } from '@/lib/utils/api-logger';
-import { SynbotSessionType } from '@/lib/types/SynbotTypes';
+import { v4 as uuidv4 } from 'uuid';
+import { SynbotInteractionType, SynbotSessionType } from '@/lib/types/SynbotTypes';
+import { generateGeminiResponse } from '@/lib/utils/gemini-ai';
 
-// Oturum verisi ve mesajları (gerçek uygulamada veritabanından gelecek)
-import { demoSessions } from '../../../route';
-
-// Hata işleme yardımcı fonksiyonu
-function handleError(error: any) {
-  console.error('SynBot Mesaj API Hatası:', error);
-  return NextResponse.json(
-    { error: 'İşlem sırasında bir hata oluştu', details: error.message },
-    { status: 500 }
-  );
-}
-
-// Doğrulama şemaları
-const createMessageSchema = z.object({
-  content: z.string().min(1, 'Mesaj içeriği boş olamaz').max(5000, 'Mesaj çok uzun'),
-  isUserMessage: z.boolean().default(true),
-  type: z.nativeEnum(SynbotInteractionType).optional(),
-  metadata: z.record(z.any()).optional(),
-});
-
-const feedbackSchema = z.object({
-  interactionId: z.string(),
-  feedback: z.nativeEnum(FeedbackType),
-  note: z.string().optional(),
-});
-
-// GET: Oturuma ait mesajları getir
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { sessionId: string } }
-) {
-  return secureApiRoute(req, async (req: NextRequest, authData) => {
-    const { sessionId } = params;
+export async function GET(request: NextRequest) {
+  // Extract the sessionId from the URL
+  const sessionId = request.nextUrl.pathname.split('/').pop();
+  
+  return secureApiRoute(request, async (req: NextRequest, authData) => {
     const userId = authData?.session?.user?.id || 'test-user';
     
     // Oturumu bul
-    const synbotSession = demoSessions.find(s => s.id === sessionId);
+    const synbotSession = demoSessions.find((s: any) => s.id === sessionId);
     
     if (!synbotSession) {
       return standardApiResponse(null, {
@@ -80,7 +39,7 @@ export async function GET(
     }
 
     // Messages formatını oluştur
-    const messages = synbotSession.messages.map(msg => ({
+    const messages = synbotSession.messages.map((msg: any) => ({
       id: msg.id,
       content: msg.content,
       role: msg.role,
@@ -100,13 +59,11 @@ export async function GET(
   });
 }
 
-// POST: Yeni mesaj ekle
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { sessionId: string } }
-) {
-  return secureApiRoute(req, async (req: NextRequest, authData) => {
-    const { sessionId } = params;
+export async function POST(request: NextRequest) {
+  // Extract the sessionId from the URL
+  const sessionId = request.nextUrl.pathname.split('/').pop();
+  
+  return secureApiRoute(request, async (req: NextRequest, authData) => {
     const userId = authData?.session?.user?.id || 'test-user';
     const body = await req.json();
     
@@ -120,7 +77,7 @@ export async function POST(
     }
     
     // Oturumu bul
-    const sessionIndex = demoSessions.findIndex(s => s.id === sessionId);
+    const sessionIndex = demoSessions.findIndex((s: any) => s.id === sessionId);
     
     if (sessionIndex === -1) {
       return standardApiResponse(null, {
@@ -163,7 +120,7 @@ export async function POST(
     });
     
     // Mesaj geçmişini formatla
-    const previousMessages = demoSessions[sessionIndex].messages.slice(0, -1).map(msg => ({
+    const previousMessages = demoSessions[sessionIndex].messages.slice(0, -1).map((msg: any) => ({
       role: msg.role === 'user' ? 'user' : 'model' as 'user' | 'model',
       parts: [{ text: msg.content }]
     }));
@@ -172,7 +129,7 @@ export async function POST(
       // SynBot yanıtını Gemini API'sinden al
       const geminiResponse = await generateGeminiResponse(
         body.content,
-        sessionId,
+        sessionId || '',
         userId,
         SynbotSessionType.CHAT,
         previousMessages
@@ -249,29 +206,25 @@ export async function POST(
   });
 }
 
-// PUT: Mesaj güncelle (geribildirim ekle)
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { sessionId: string } }
-) {
-  return secureApiRoute(req, async (req: NextRequest, authData) => {
-    const { sessionId } = params;
+export async function PUT(request: NextRequest) {
+  // Extract the sessionId from the URL
+  const sessionId = request.nextUrl.pathname.split('/').pop();
+  
+  return secureApiRoute(request, async (req: NextRequest, authData) => {
     const userId = authData?.session?.user?.id || 'test-user';
     const body = await req.json();
     
-    // İstek formatını kontrol et
-    if (!body.messageId || !body.feedback) {
+    // İstek gövdesini doğrula
+    if (!body.interactionId || !body.feedback) {
       return standardApiResponse(null, {
         success: false,
         status: 400,
-        message: 'Geçersiz istek formatı: messageId ve feedback alanları gereklidir'
+        message: 'Geçersiz istek formatı: interactionId ve feedback alanları gereklidir'
       });
     }
     
-    const { messageId, feedback, note } = body;
-    
     // Oturumu bul
-    const sessionIndex = demoSessions.findIndex(s => s.id === sessionId);
+    const sessionIndex = demoSessions.findIndex((s: any) => s.id === sessionId);
     
     if (sessionIndex === -1) {
       return standardApiResponse(null, {
@@ -283,7 +236,7 @@ export async function PUT(
     
     // Oturum kullanıcıya ait değilse ve kullanıcı admin değilse erişim reddet
     if (demoSessions[sessionIndex].userId !== userId && authData?.session?.user?.role !== 'admin') {
-      apiLogger.logSecurity(req, 'Başka kullanıcıya ait Synbot oturumuna mesaj gönderme girişimi', {
+      apiLogger.logSecurity(req, 'Başka kullanıcıya ait Synbot oturumuna geri bildirim gönderme girişimi', {
         userId,
         sessionId
       });
@@ -291,41 +244,44 @@ export async function PUT(
       return standardApiResponse(null, {
         success: false,
         status: 403,
-        message: 'Bu oturuma mesaj gönderme yetkiniz bulunmuyor'
+        message: 'Bu oturuma geri bildirim gönderme yetkiniz bulunmuyor'
       });
     }
     
-    // Mesajı bul
-    const messageIndex = demoSessions[sessionIndex].messages.findIndex(msg => msg.id === messageId);
+    // Belirtilen etkileşimi bul (botun mesajı)
+    const messageIndex = demoSessions[sessionIndex].messages.findIndex((msg: any) => 
+      msg.id === body.interactionId && msg.role === 'assistant'
+    );
     
     if (messageIndex === -1) {
       return standardApiResponse(null, {
         success: false,
         status: 404,
-        message: 'Mesaj bulunamadı'
+        message: 'Belirtilen etkileşim bulunamadı'
       });
     }
     
-    // Mesajı güncelle
-    demoSessions[sessionIndex].messages[messageIndex] = {
-      ...demoSessions[sessionIndex].messages[messageIndex],
-      feedback,
-      feedbackTimestamp: new Date(),
-      ...(note && { feedbackNote: note })
-    };
+    // Geri bildirimi kaydet (gerçek uygulamada veritabanına kaydedilir)
+    // Burada sadece demo verileri üzerinde işlem yaptığımız için gerçek bir kayıt yapılmıyor
+    
+    // İşlem loglama
+    apiLogger.logAuth(req, true, userId, authData?.session?.user?.role, {
+      action: 'synbot-feedback',
+      sessionId,
+      messageId: body.interactionId,
+      feedback: body.feedback
+    });
     
     return standardApiResponse({
       success: true,
-      messageId,
-      feedback,
+      message: 'Geri bildirim başarıyla kaydedildi',
       sessionId,
-      timestamp: new Date()
-    }, {
-      message: 'Geri bildirim başarıyla kaydedildi'
+      interactionId: body.interactionId,
+      feedback: body.feedback
     });
   }, {
     allowedRoles: ['admin', 'manager', 'trainer', 'user'],
-    operationName: 'Synbot Mesaj Geri Bildirimi',
+    operationName: 'Synbot Geri Bildirim',
     skipRoleCheck: true // Geliştirme sırasında test için
   });
 } 

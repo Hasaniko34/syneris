@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, PageProps } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import Link from "next/link";
 import { 
   BookOpen, 

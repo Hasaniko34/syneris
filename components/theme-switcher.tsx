@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Icons } from "@/components/icons"
-import { motion } from "framer-motion"
+import { motion } from "@/components/motion-wrapper"
 
 export function ThemeSwitcher() {
   const [mounted, setMounted] = useState(false)

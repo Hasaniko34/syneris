@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Card,
@@ -105,10 +105,17 @@ const hedefKitleSecenek = [
   { id: "insan-kaynaklari", label: "İnsan Kaynakları" },
 ];
 
-export default function EgitimOlusturPage() {
-  const router = useRouter();
+// SearchParams için bir wrapper component
+function SearchParamsWrapper({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const templateId = searchParams.get('template');
+  
+  return children({ templateId });
+}
+
+export default function EgitimOlusturPage() {
+  const router = useRouter();
+  const [templateId, setTemplateId] = useState<string | null>(null);
   const [aktifTab, setAktifTab] = useState("genel-bilgiler");
   const [moduller, setModuller] = useState([
     { 
@@ -252,6 +259,19 @@ export default function EgitimOlusturPage() {
         </Button>
         <h1 className="text-3xl font-bold">Yeni Eğitim Oluştur</h1>
       </div>
+
+      <Suspense fallback={<div>Yükleniyor...</div>}>
+        <SearchParamsWrapper>
+          {({ templateId: id }) => {
+            // ID'yi state'e ayarla
+            if (id !== templateId) {
+              setTemplateId(id);
+            }
+            
+            return null;
+          }}
+        </SearchParamsWrapper>
+      </Suspense>
 
       <Tabs value={aktifTab} onValueChange={setAktifTab}>
         <TabsList className="grid w-full grid-cols-3 mb-8">

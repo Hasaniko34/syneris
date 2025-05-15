@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import { ChevronRight, Clock, BarChart2, TrendingUp, LineChart, Target, Award, Users, CreditCard, Briefcase, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

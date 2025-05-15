@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import { 
   User, UserPlus, Search, Edit, Trash2, MoreHorizontal, 
   Check, X, Shield, Filter, Download, SortAsc, Building 

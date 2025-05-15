@@ -26,7 +26,7 @@ interface Session {
 }
 
 // Demo oturumları ve mesajları (gerçek uygulamada bunlar veritabanında saklanacak)
-const demoSessions: Session[] = [
+export const demoSessions: Session[] = [
   {
     id: 'session-1',
     userId: 'demo-user',

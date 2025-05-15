@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import { useRouter } from "next/navigation";
 import {
   User,

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, User, UserPlus, Search, Edit, Trash2, MoreHorizontal, Check, X, Shield } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

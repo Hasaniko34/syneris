@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -12,20 +12,35 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
+// SearchParams için wrapper component
+function SearchParamsWrapper({ children }) {
+  const searchParams = useSearchParams();
+  const fullscreen = searchParams.get('fullscreen') === 'true';
+  
+  return children({ fullscreen });
+}
+
 export default function SynbotDirectPage() {
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const searchParams = useSearchParams();
-  const fullscreen = searchParams.get('fullscreen') === 'true';
+  // searchParams değerini state'e taşı
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const [messages, setMessages] = useState<{role: 'user' | 'bot', content: string}[]>([
-    {role: 'bot', content: fullscreen 
-      ? 'Merhaba! Ben SynBot, Turkcell\'in yapay zeka asistanıyım. Turkcell sistemleri, süreçleri ve hata kodları hakkında sorularınızı yanıtlayabilirim. Size nasıl yardımcı olabilirim?' 
-      : 'Merhaba! Ben SynBot Direct. Bana bir soru sorun.'
-    }
+    {role: 'bot', content: 'Yükleniyor...'}
   ]);
+
+  // fullscreen parametresi değiştiğinde mesajları güncelle
+  useEffect(() => {
+    setMessages([{
+      role: 'bot', 
+      content: isFullscreen 
+        ? 'Merhaba! Ben SynBot, Turkcell\'in yapay zeka asistanıyım. Turkcell sistemleri, süreçleri ve hata kodları hakkında sorularınızı yanıtlayabilirim. Size nasıl yardımcı olabilirim?' 
+        : 'Merhaba! Ben SynBot Direct. Bana bir soru sorun.'
+    }]);
+  }, [isFullscreen]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -38,7 +53,7 @@ export default function SynbotDirectPage() {
     setError(null);
 
     // Loading mesajı göster
-    setMessages(prev => [...prev, {role: 'bot', content: fullscreen ? '...' : 'Yanıt hazırlanıyor...'}]);
+    setMessages(prev => [...prev, {role: 'bot', content: isFullscreen ? '...' : 'Yanıt hazırlanıyor...'}]);
 
     try {
       // Doğrudan Gemini API'ye istek
@@ -95,8 +110,22 @@ export default function SynbotDirectPage() {
   }
 
   return (
-    <div className={`container mx-auto py-6 ${fullscreen ? 'h-screen flex flex-col' : ''}`}>
-      {fullscreen && (
+    <div className={`container mx-auto py-6 ${isFullscreen ? 'h-screen flex flex-col' : ''}`}>
+      {/* SearchParams için Suspense boundary */}
+      <Suspense fallback={<div className="w-10 h-10 border-t-2 border-primary rounded-full animate-spin"></div>}>
+        <SearchParamsWrapper>
+          {({ fullscreen }) => {
+            // fullscreen değerini state'e ayarla
+            if (fullscreen !== isFullscreen) {
+              setIsFullscreen(fullscreen);
+            }
+            
+            return null;
+          }}
+        </SearchParamsWrapper>
+      </Suspense>
+      
+      {isFullscreen && (
         <div className="flex items-center gap-4 mb-4">
           <Link href="/dashboard/synbot">
             <Button variant="ghost" size="icon">
@@ -111,7 +140,7 @@ export default function SynbotDirectPage() {
         </div>
       )}
       
-      <Card className={`border-2 border-[#00a0d2]/20 overflow-hidden ${fullscreen ? 'flex-1 flex flex-col' : ''}`}>
+      <Card className={`border-2 border-[#00a0d2]/20 overflow-hidden ${isFullscreen ? 'flex-1 flex flex-col' : ''}`}>
         <CardHeader className="bg-[#00a0d2]/5 border-b">
           <div className="flex items-center gap-2">
             <Avatar className="h-10 w-10">
@@ -119,16 +148,16 @@ export default function SynbotDirectPage() {
               <AvatarFallback className="bg-gradient-to-br from-[#ffc72c] to-[#00a0d2] text-white">SB</AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle>{fullscreen ? 'SynBot' : 'SynBot Direct (Gemini API)'}</CardTitle>
-              {!fullscreen && (
+              <CardTitle>{isFullscreen ? 'SynBot' : 'SynBot Direct (Gemini API)'}</CardTitle>
+              {!isFullscreen && (
                 <p className="text-xs text-muted-foreground">Doğrudan API bağlantısı ile çalışan versiyon</p>
               )}
             </div>
           </div>
         </CardHeader>
         
-        <CardContent className={`p-0 ${fullscreen ? 'flex-1 overflow-hidden flex flex-col' : ''}`}>
-          <div className={`${fullscreen ? 'flex-1 ' : 'h-[500px] '}overflow-y-auto p-4 space-y-4`}>
+        <CardContent className={`p-0 ${isFullscreen ? 'flex-1 overflow-hidden flex flex-col' : ''}`}>
+          <div className={`${isFullscreen ? 'flex-1 ' : 'h-[500px] '}overflow-y-auto p-4 space-y-4`}>
             {messages.map((msg, index) => (
               <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -180,7 +209,7 @@ export default function SynbotDirectPage() {
             <Input 
               value={query} 
               onChange={(e) => setQuery(e.target.value)} 
-              placeholder={fullscreen ? "Turkcell sistemleri veya süreçleri hakkında bir soru sorun..." : "SynBot'a bir şey sorun..."} 
+              placeholder={isFullscreen ? "Turkcell sistemleri veya süreçleri hakkında bir soru sorun..." : "SynBot'a bir şey sorun..."} 
               className="flex-1" 
               disabled={loading}
             />
@@ -191,7 +220,7 @@ export default function SynbotDirectPage() {
         </CardFooter>
       </Card>
       
-      {!fullscreen && (
+      {!isFullscreen && (
         <div className="mt-6">
           <Alert className="bg-amber-50 border-amber-200">
             <AlertCircle className="h-4 w-4 text-amber-600" />

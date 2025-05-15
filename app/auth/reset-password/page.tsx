@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -58,10 +58,17 @@ const resetPasswordSchema = z
     path: ["confirmPassword"],
   });
 
-export default function ResetPasswordPage() {
-  const router = useRouter();
+// SearchParams için wrapper component
+function SearchParamsWrapper({ children }) {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  
+  return children({ token });
+}
+
+export default function ResetPasswordPage() {
+  const router = useRouter();
+  const [token, setToken] = useState(null);
   
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -106,7 +113,9 @@ export default function ResetPasswordPage() {
       }
     };
 
-    validateToken();
+    if (token) {
+      validateToken();
+    }
   }, [token]);
 
   const handlePasswordReset = async (data: { password: string; confirmPassword: string }) => {
@@ -145,6 +154,20 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-8 space-y-8 relative z-10">
+      {/* SearchParams için Suspense boundary */}
+      <Suspense fallback={<div className="w-10 h-10 border-t-2 border-primary rounded-full animate-spin"></div>}>
+        <SearchParamsWrapper>
+          {({ token: paramToken }) => {
+            // Token'ı state'e ayarla
+            if (paramToken !== token) {
+              setToken(paramToken);
+            }
+            
+            return null;
+          }}
+        </SearchParamsWrapper>
+      </Suspense>
+      
       {/* Dekoratif arka plan elemanları */}
       <div className="absolute -z-10 top-1/3 -left-20 w-40 h-40 bg-gradient-to-r from-primary/40 to-purple-500/40 rounded-full blur-3xl opacity-60 animate-pulse-slow"></div>
       <div className="absolute -z-10 top-2/3 -right-20 w-40 h-40 bg-gradient-to-l from-primary/40 to-cyan-500/40 rounded-full blur-3xl opacity-60 animate-pulse-slow" style={{ animationDelay: '1.5s' }}></div>

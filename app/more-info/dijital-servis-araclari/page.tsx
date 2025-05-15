@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import { ChevronRight, Clock, Shield, Code, Database, Settings, Users, ExternalLink, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

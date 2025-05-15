@@ -39,6 +39,58 @@ type InsightData = {
   }[];
 };
 
+// Demo veri oluşturan yardımcı fonksiyon
+const getDemoData = (): InsightData => {
+  return {
+    completionRate: 0.72,
+    topicStrengths: [
+      { topic: "Veri Modeli", strength: 0.85 },
+      { topic: "UI Bileşenleri", strength: 0.78 },
+      { topic: "State Yönetimi", strength: 0.76 }
+    ],
+    topicWeaknesses: [
+      { topic: "API Tasarımı", strength: 0.45 },
+      { topic: "Güvenlik", strength: 0.52 },
+      { topic: "Performans Optimizasyonu", strength: 0.58 }
+    ],
+    learningPatterns: {
+      timeOfDay: {
+        morning: 15,
+        afternoon: 35,
+        evening: 40,
+        night: 10
+      },
+      daysOfWeek: {
+        "Pazartesi": 20,
+        "Salı": 15,
+        "Çarşamba": 25,
+        "Perşembe": 10,
+        "Cuma": 15,
+        "Cumartesi": 10,
+        "Pazar": 5
+      },
+      averageSessionLength: 28
+    },
+    recommendations: [
+      {
+        text: "API tasarımı konusundaki eğitimlere odaklanarak bilgi seviyenizi artırabilirsiniz.",
+        confidence: 0.88,
+        type: "content"
+      },
+      {
+        text: "Öğleden sonra ve akşam saatlerinde daha verimli çalıştığınız görülüyor. Bu zaman dilimlerinde daha zorlu konuları çalışmayı deneyebilirsiniz.",
+        confidence: 0.76,
+        type: "timing"
+      },
+      {
+        text: "Pratik uygulamalarla güvenlik konusunu pekiştirebilirsiniz. Örnek projeler üzerinde çalışmak faydalı olabilir.",
+        confidence: 0.82,
+        type: "method"
+      }
+    ]
+  };
+};
+
 export function SynbotInsightsCard() {
   const [insights, setInsights] = useState<InsightData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +117,7 @@ export function SynbotInsightsCard() {
             description: "Etkileşim verileri bulunamadı. Lütfen daha sonra tekrar deneyin.",
             variant: "destructive",
           });
-          useDemoData();
+          setInsights(getDemoData());
         }
       } else {
         console.error("API yanıt hatası:", data);
@@ -74,7 +126,7 @@ export function SynbotInsightsCard() {
           description: data.error || "Etkileşim verileri yüklenirken bir sorun oluştu.",
           variant: "destructive",
         });
-        useDemoData();
+        setInsights(getDemoData());
       }
     } catch (error) {
       console.error("Insights API hatası:", error);
@@ -83,61 +135,10 @@ export function SynbotInsightsCard() {
         description: "Sunucu ile iletişim kurulurken bir sorun oluştu.",
         variant: "destructive",
       });
-      useDemoData();
+      setInsights(getDemoData());
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const useDemoData = () => {
-    setInsights({
-      completionRate: 0.72,
-      topicStrengths: [
-        { topic: "Veri Modeli", strength: 0.85 },
-        { topic: "UI Bileşenleri", strength: 0.78 },
-        { topic: "State Yönetimi", strength: 0.76 }
-      ],
-      topicWeaknesses: [
-        { topic: "API Tasarımı", strength: 0.45 },
-        { topic: "Güvenlik", strength: 0.52 },
-        { topic: "Performans Optimizasyonu", strength: 0.58 }
-      ],
-      learningPatterns: {
-        timeOfDay: {
-          morning: 15,
-          afternoon: 35,
-          evening: 40,
-          night: 10
-        },
-        daysOfWeek: {
-          "Pazartesi": 20,
-          "Salı": 15,
-          "Çarşamba": 25,
-          "Perşembe": 10,
-          "Cuma": 15,
-          "Cumartesi": 10,
-          "Pazar": 5
-        },
-        averageSessionLength: 28
-      },
-      recommendations: [
-        {
-          text: "API tasarımı konusundaki eğitimlere odaklanarak bilgi seviyenizi artırabilirsiniz.",
-          confidence: 0.88,
-          type: "content"
-        },
-        {
-          text: "Öğleden sonra ve akşam saatlerinde daha verimli çalıştığınız görülüyor. Bu zaman dilimlerinde daha zorlu konuları çalışmayı deneyebilirsiniz.",
-          confidence: 0.76,
-          type: "timing"
-        },
-        {
-          text: "Pratik uygulamalarla güvenlik konusunu pekiştirebilirsiniz. Örnek projeler üzerinde çalışmak faydalı olabilir.",
-          confidence: 0.82,
-          type: "method"
-        }
-      ]
-    });
   };
   
   // Detaylı analiz görüntüleme fonksiyonu
@@ -163,54 +164,7 @@ export function SynbotInsightsCard() {
   useEffect(() => {
     if (isLoading && !insights) {
       setTimeout(() => {
-        setInsights({
-          completionRate: 0.72,
-          topicStrengths: [
-            { topic: "Veri Modeli", strength: 0.85 },
-            { topic: "UI Bileşenleri", strength: 0.78 },
-            { topic: "State Yönetimi", strength: 0.76 }
-          ],
-          topicWeaknesses: [
-            { topic: "API Tasarımı", strength: 0.45 },
-            { topic: "Güvenlik", strength: 0.52 },
-            { topic: "Performans Optimizasyonu", strength: 0.58 }
-          ],
-          learningPatterns: {
-            timeOfDay: {
-              morning: 15,
-              afternoon: 35,
-              evening: 40,
-              night: 10
-            },
-            daysOfWeek: {
-              "Pazartesi": 20,
-              "Salı": 15,
-              "Çarşamba": 25,
-              "Perşembe": 10,
-              "Cuma": 15,
-              "Cumartesi": 10,
-              "Pazar": 5
-            },
-            averageSessionLength: 28
-          },
-          recommendations: [
-            {
-              text: "API tasarımı konusundaki eğitimlere odaklanarak bilgi seviyenizi artırabilirsiniz.",
-              confidence: 0.88,
-              type: "content"
-            },
-            {
-              text: "Öğleden sonra ve akşam saatlerinde daha verimli çalıştığınız görülüyor. Bu zaman dilimlerinde daha zorlu konuları çalışmayı deneyebilirsiniz.",
-              confidence: 0.76,
-              type: "timing"
-            },
-            {
-              text: "Pratik uygulamalarla güvenlik konusunu pekiştirebilirsiniz. Örnek projeler üzerinde çalışmak faydalı olabilir.",
-              confidence: 0.82,
-              type: "method"
-            }
-          ]
-        });
+        setInsights(getDemoData());
         setIsLoading(false);
       }, 1500);
     }

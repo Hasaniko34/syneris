@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import { ChevronRight, Clock, Trophy, Star, BarChart, Target, Medal, Award, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

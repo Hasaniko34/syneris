@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import { ChevronRight, Clock, Shield, LockKeyhole, Eye, File, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

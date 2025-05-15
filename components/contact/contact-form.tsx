@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useForm } from "react-hook-form"
-import { toast } from "sonner"
+import { useToast } from "@/components/ui/use-toast"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +20,7 @@ type FormData = {
 
 export function ContactForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { toast } = useToast()
   
   const {
     register,
@@ -46,11 +47,18 @@ export function ContactForm() {
         throw new Error(result.error || "Bir şeyler yanlış gitti")
       }
 
-      toast.success("Mesajınız başarıyla gönderildi. En kısa sürede size dönüş yapacağız.")
+      toast({
+        title: "Başarılı",
+        description: "Mesajınız başarıyla gönderildi. En kısa sürede size dönüş yapacağız."
+      })
       reset() // Formu sıfırla
     } catch (error) {
       console.error("Form gönderme hatası:", error)
-      toast.error(error instanceof Error ? error.message : "Mesajınız gönderilemedi. Lütfen daha sonra tekrar deneyin.")
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: error instanceof Error ? error.message : "Mesajınız gönderilemedi. Lütfen daha sonra tekrar deneyin."
+      })
     } finally {
       setIsSubmitting(false)
     }

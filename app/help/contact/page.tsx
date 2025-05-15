@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "@/components/motion-wrapper";
 import Link from "next/link";
 
 const ContactPage = () => {
@@ -90,7 +90,7 @@ const ContactPage = () => {
                 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-700 mb-1">İç Destek Sistemi</h3>
-                  <p className="text-gray-600">TEB İntranet > Destek</p>
+                  <p className="text-gray-600">TEB İntranet {`>`} Destek</p>
                   <p className="text-sm text-gray-500">Teknik sorunlar için IT departmanı desteği</p>
                 </div>
               </div>
