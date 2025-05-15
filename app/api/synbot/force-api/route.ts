@@ -44,11 +44,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare request to Gemini API
-    const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+    const geminiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
     const requestBody = {
       contents: [
         {
-          role: "user",
           parts: [
             {
               text: message,
@@ -56,9 +55,15 @@ export async function POST(request: NextRequest) {
           ],
         },
       ],
+      generationConfig: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 2048
+      }
     };
 
-    console.log("Sending request to Gemini API");
+    console.log("Sending request to Gemini API with model: gemini-2.0-flash");
     
     // Send request to Gemini API with timeout
     const controller = new AbortController();
@@ -110,14 +115,18 @@ export async function POST(request: NextRequest) {
         }, { status: 500 });
       }
   
-      // Extract the AI response text
+      // Extract the AI response text - Gemini 2.0 response format may be different
       let aiResponse = "";
-      if (
-        data?.candidates &&
-        data.candidates[0]?.content?.parts &&
-        data.candidates[0].content.parts[0]?.text
-      ) {
+
+      if (data?.candidates && data.candidates[0]?.content?.parts && data.candidates[0].content.parts[0]?.text) {
+        // New Gemini 2.0 format
         aiResponse = data.candidates[0].content.parts[0].text;
+      } else if (data?.candidates && data.candidates[0]?.text) {
+        // Alternative format
+        aiResponse = data.candidates[0].text;
+      } else if (data?.text) {
+        // Simple format
+        aiResponse = data.text;
       } else {
         console.error("Unexpected Gemini API response format:", data);
         return NextResponse.json({
