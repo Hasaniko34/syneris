@@ -1,7 +1,7 @@
 "use client"
 
 import { Metadata } from "next"
-import { motion } from "@/components/motion-wrapper"
+// import { motion } from "@/components/motion-wrapper" - kaldırıldı
 
 import { ContactForm } from "@/components/contact/contact-form"
 import { ContactInfo } from "@/components/contact/contact-info"
