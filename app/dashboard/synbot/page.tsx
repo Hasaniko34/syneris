@@ -268,11 +268,6 @@ interface Session {
   updatedAt: Date;
 }
 
-export const metadata = {
-  title: "SynBot - Eğitim Asistanı | Turkcell",
-  description: "Turkcell Akademi eğitim asistanı"
-};
-
 export default function SynbotPage() {
   const router = useRouter();
   const { data: session } = useSession();

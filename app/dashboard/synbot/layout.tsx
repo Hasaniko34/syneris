@@ -1,8 +1,8 @@
-import { Metadata } from "next";
+import React from "react";
 
-export const metadata: Metadata = {
-  title: "SynBot | Turkcell Eğitim Asistanı",
-  description: "Turkcell Syneris platformunun eğitim asistanı SynBot ile sohbet edin ve öğrenin.",
+export const metadata = {
+  title: "SynBot - Eğitim Asistanı | Turkcell",
+  description: "Turkcell Akademi eğitim asistanı"
 };
 
 export default function SynbotLayout({
