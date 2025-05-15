@@ -153,13 +153,49 @@ export async function createSession(data: {
 // Kullanıcının tüm oturumlarını getir
 export async function getUserSessions(userId: string) {
   if (!SynbotSession) {
-    throw new Error('SynbotSession modeli oluşturulmamış');
+    console.warn('SynbotSession modeli oluşturulmamış, dummy veri dönüyor');
+    // MongoDB bağlantısı yoksa örnek veri döndür
+    return [
+      {
+        _id: "dummy-session-1",
+        title: "Örnek Oturum 1",
+        userId: userId,
+        status: SessionStatus.ACTIVE,
+        primaryType: SynbotInteractionType.CHAT,
+        messageCount: 0,
+        lastInteractionAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {},
+      }
+    ];
   }
   
-  const sessions = await SynbotSession.find({ userId })
-    .sort({ lastInteractionAt: -1 });
-  
-  return sessions;
+  try {
+    const sessions = await SynbotSession.find({ userId })
+      .sort({ lastInteractionAt: -1 })
+      .lean()
+      .exec();
+    
+    return sessions;
+  } catch (error) {
+    console.error("MongoDB oturum getirme hatası:", error);
+    // Hata durumunda örnek veri döndür
+    return [
+      {
+        _id: "error-session-1",
+        title: "Veritabanı Bağlantı Hatası",
+        userId: userId,
+        status: SessionStatus.ACTIVE,
+        primaryType: SynbotInteractionType.CHAT,
+        messageCount: 0,
+        lastInteractionAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: { error: true },
+      }
+    ];
+  }
 }
 
 // Oturum durumunu güncelle

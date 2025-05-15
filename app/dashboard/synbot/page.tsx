@@ -70,7 +70,7 @@ import Link from "next/link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // SearchParams için wrapper component
-function SearchParamsWrapper({ children }) {
+function SearchParamsWrapper({ children }: { children: (props: { sessionId: string | null }) => React.ReactNode }) {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
   
@@ -272,7 +272,7 @@ const SynBotPage = () => {
   // Remove the direct call
   // const searchParams = useSearchParams();
   // Put this value in state instead 
-  const [sessionIdFromParam, setSessionIdFromParam] = useState(null);
+  const [sessionIdFromParam, setSessionIdFromParam] = useState<string | null>(null);
   
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -293,7 +293,58 @@ const SynBotPage = () => {
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   
-  // ... rest of component code ...
+  // Oturumları yükle
+  const loadSessions = async () => {
+    try {
+      setIsLoading(true);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 saniye zaman aşımı
+      
+      const response = await fetch('/api/synbot/sessions', {
+        signal: controller.signal
+      }).catch(error => {
+        console.error("Fetch hatası:", error);
+        return new Response(JSON.stringify({ success: false, error: "Bağlantı hatası" }), { 
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      });
+      
+      clearTimeout(timeoutId);
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setSessions(data.sessions || []);
+      } else {
+        console.error("Oturumlar alınamadı:", data);
+        toast({
+          title: "Oturumlar yüklenemedi",
+          description: "Veritabanına bağlanırken sorun oluştu. Sayfayı yenileyin veya daha sonra tekrar deneyin.",
+          variant: "destructive"
+        });
+        // Boş oturumlar listesi ile devam et
+        setSessions([]);
+      }
+    } catch (error) {
+      console.error("Oturumlar yüklenirken hata:", error);
+      toast({
+        title: "Bağlantı hatası",
+        description: "Sunucu ile iletişim kurulamadı. Daha sonra tekrar deneyin.",
+        variant: "destructive"
+      });
+      // Hata durumunda boş liste
+      setSessions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Oturum seçme
+  const selectSession = (sessionId: string) => {
+    // Bu fonksiyon daha sonra implementasyon için eklenecek
+    setActiveChatSession(sessionId);
+  };
   
   useEffect(() => {
     if (sessionIdFromParam) {
@@ -312,8 +363,6 @@ const SynBotPage = () => {
       setShowNewFeatureDialog(true);
     }
   }, [sessionIdFromParam]);
-
-  // ... rest of component code ...
 
   return (
     <div className="container mx-auto h-[calc(100vh-6rem)] p-4 relative overflow-hidden">

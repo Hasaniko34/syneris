@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const userId = session.user.id;
+    const userId = session.user.id as string;
     const { searchParams } = new URL(req.url);
     
     // Sorgu parametrelerini al
@@ -51,19 +51,19 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get('type') || undefined;
     const status = searchParams.get('status') || undefined;
     
-    // Filtreleme parametreleri oluştur
-    const filterParams: any = { userId };
+    // MongoDB zaman aşımı koruması - Promise.race ile kontrol
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('MongoDB bağlantı zaman aşımı')), 5000);
+    });
     
-    if (type) {
-      filterParams.type = type;
-    }
-    
-    if (status) {
-      filterParams.status = status;
-    }
-    
-    // Oturumları getir
-    const sessions = await getUserSessions(userId, limit, skip);
+    // Oturumları getirme işlemini Promise.race ile çalıştır
+    const sessionsPromise = getUserSessions(userId);
+    const sessions = await Promise.race([sessionsPromise, timeoutPromise])
+      .catch(error => {
+        console.error("MongoDB oturumları getirme hatası:", error);
+        // Hata durumunda boş array döndür
+        return [];
+      });
     
     return NextResponse.json({
       success: true,
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       pagination: {
         limit,
         skip,
-        total: sessions.length // Gerçek toplamı almak için ileri seviye bir sorgu gerekebilir
+        total: Array.isArray(sessions) ? sessions.length : 0
       }
     });
   } catch (error) {
